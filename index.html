@@ -2,605 +2,608 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=1280"/>
 <title>GM Outturn Position — RCF Kapurthala</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
   :root {
-    --bg:        #F5F4F0;
-    --surface:   #FFFFFF;
-    --surface2:  #EEECEA;
-    --border:    #D8D6D0;
-    --text:      #1C1B18;
-    --muted:     #72706A;
-    --accent1:   #1A56A0;
-    --accent2:   #0F7A55;
-    --accent3:   #C2760F;
-    --accent4:   #B83030;
-    --accent1l:  #D6E6F7;
-    --accent2l:  #CCF0E2;
-    --accent3l:  #FDE9C5;
-    --accent4l:  #FAD4D4;
-    --radius:    10px;
-    --radius-lg: 14px;
+    --bg:       #F7F6F3;
+    --surface:  #FFFFFF;
+    --border:   #E4E2DC;
+    --text:     #18181B;
+    --muted:    #6B6B6F;
+    --faint:    #A1A1A6;
+    --blue:     #2563EB;
+    --blue-bg:  #EFF4FF;
+    --green:    #16A34A;
+    --green-bg: #F0FDF4;
+    --amber:    #D97706;
+    --amber-bg: #FFFBEB;
+    --red:      #DC2626;
+    --red-bg:   #FEF2F2;
+    --r:        10px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
+  html, body {
+    width: 100%; min-height: 100vh;
+    font-family: 'Inter', sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
-    padding: 20px 28px;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ── HEADER ── */
+  .page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 32px 36px;
+  }
+
+  /* HEADER */
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-    gap: 10px;
+    margin-bottom: 22px;
   }
-  .header-left h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
-  .header-left p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
-  .header-right   { display: flex; align-items: center; gap: 10px; }
-  .pill {
+  .header h1 {
+    font-size: 15px; font-weight: 600;
+    letter-spacing: -0.2px; color: var(--text);
+  }
+  .header-sub {
+    font-size: 12px; color: var(--muted);
+    margin-top: 3px; font-weight: 400;
+  }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .tag {
     font-size: 11px; font-weight: 500;
-    padding: 4px 12px; border-radius: 20px;
-    background: var(--accent1l); color: var(--accent1);
+    padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted); background: var(--surface);
   }
-  #last-updated { font-size: 11px; color: var(--muted); }
   .refresh-btn {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 12px; font-weight: 500;
     padding: 6px 14px; border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--surface); color: var(--text);
-    cursor: pointer; transition: background 0.15s;
+    cursor: pointer; transition: background .15s;
+    display: flex; align-items: center; gap: 6px;
   }
-  .refresh-btn:hover { background: var(--surface2); }
-  .refresh-btn.spinning { opacity: 0.5; pointer-events: none; }
+  .refresh-btn:hover { background: var(--bg); }
+  .refresh-btn.loading { opacity: .45; pointer-events: none; }
 
-  /* ── TOAST ── */
-  #toast {
-    display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: #222; color: #fff; font-size: 13px;
-    padding: 10px 20px; border-radius: 8px; z-index: 999;
-  }
-
-  /* ── KPI ROW ── */
+  /* KPI ROW */
   .kpi-row {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
   .kpi {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    position: relative;
-    overflow: hidden;
+    border-top: 3px solid var(--border);
+    border-radius: var(--r);
+    padding: 15px 17px;
   }
-  .kpi::before {
-    content: '';
-    position: absolute; left: 0; top: 0; bottom: 0;
-    width: 4px;
-    border-radius: 4px 0 0 4px;
+  .kpi.blue  { border-top-color: var(--blue); }
+  .kpi.green { border-top-color: var(--green); }
+  .kpi.amber { border-top-color: var(--amber); }
+  .kpi.red   { border-top-color: var(--red); }
+  .kpi-label {
+    font-size: 10.5px; font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: 8px;
   }
-  .kpi.blue::before   { background: var(--accent1); }
-  .kpi.green::before  { background: var(--accent2); }
-  .kpi.amber::before  { background: var(--accent3); }
-  .kpi.red::before    { background: var(--accent4); }
-  .kpi-label { font-size: 10.5px; color: var(--muted); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
-  .kpi-value { font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -0.5px; }
-  .kpi-sub   { font-size: 11px; color: var(--muted); margin-top: 5px; }
-  .kpi-sub b { color: var(--text); font-weight: 500; }
+  .kpi-value {
+    font-size: 30px; font-weight: 600;
+    line-height: 1; letter-spacing: -1.5px;
+    color: var(--text); font-variant-numeric: tabular-nums;
+  }
+  .kpi-meta { font-size: 11px; color: var(--faint); margin-top: 5px; }
+  .kpi-meta b { color: var(--muted); font-weight: 500; }
 
-  /* ── MAIN GRID ── */
+  /* MAIN GRID */
   .main-grid {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-columns: 1.55fr 1fr;
     gap: 14px;
+    align-items: start;
   }
+  .left-col  { display: flex; flex-direction: column; gap: 14px; }
+  .right-col { display: flex; flex-direction: column; gap: 14px; }
 
-  /* ── CARDS ── */
+  /* CARD */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--r);
     padding: 16px 18px;
   }
-  .card-title {
-    font-size: 12px; font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 14px;
+  .card-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 14px;
+    flex-wrap: wrap; gap: 8px;
   }
+  .card-title {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted);
+  }
+  .legend { display: flex; gap: 12px; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
-  /* ── CHART WRAPPERS ── */
+  /* CHART */
   .chart-wrap { position: relative; width: 100%; }
 
-  /* ── LEGEND ── */
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-  .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
-  .leg-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
-
-  /* ── TABLE ── */
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th {
-    text-align: left; padding: 6px 8px;
-    font-size: 10.5px; font-weight: 600;
-    color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: var(--faint); padding: 0 8px 8px;
     border-bottom: 1px solid var(--border);
-    white-space: nowrap;
+    text-align: left; white-space: nowrap;
   }
-  td { padding: 7px 8px; border-bottom: 1px solid var(--surface2); color: var(--text); }
-  td.num { text-align: right; font-family: 'DM Mono', monospace; font-size: 11.5px; }
-  tr:last-child td { border-bottom: none; font-weight: 600; }
-  tr.total td { border-top: 1px solid var(--border); background: var(--surface2); }
+  thead th.r { text-align: right; }
+  tbody td {
+    padding: 8px 8px; font-size: 12.5px;
+    border-bottom: 1px solid var(--bg);
+    color: var(--text); vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+  }
+  tbody td.r { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  tr.total td {
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg);
+    font-weight: 600;
+  }
+  .pct-wrap { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
+  .mini-bg  { width: 48px; height: 5px; background: var(--bg); border-radius: 3px; flex-shrink:0; }
+  .mini-fill{ height: 5px; border-radius: 3px; }
 
-  /* ── PROGRESS BARS ── */
-  .prog-list { display: flex; flex-direction: column; gap: 11px; }
-  .prog-item {}
-  .prog-top { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px; }
-  .prog-top span:first-child { font-weight: 500; }
-  .prog-top span:last-child  { color: var(--muted); font-family: 'DM Mono', monospace; }
-  .prog-bg { background: var(--surface2); border-radius: 4px; height: 7px; }
-  .prog-fill { height: 7px; border-radius: 4px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
-
-  /* ── DISPATCH STATUS ── */
-  .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  /* STAT BOXES */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-box {
-    background: var(--surface2);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-    text-align: center;
+    border-radius: 8px; padding: 13px 15px; text-align: center;
+    border: 1px solid transparent;
   }
-  .stat-box .val { font-size: 20px; font-weight: 600; }
-  .stat-box .lbl { font-size: 10px; color: var(--muted); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-val { font-size: 26px; font-weight: 600; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .stat-lbl { font-size: 10px; margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+  .stat-box.blue  { background: var(--blue-bg);  color: var(--blue);  border-color: #C0D1F0; }
+  .stat-box.green { background: var(--green-bg); color: var(--green); border-color: #B8E4C8; }
+  .stat-box.amber { background: var(--amber-bg); color: var(--amber); border-color: #EDD89A; }
+  .stat-box.neutral { background: var(--bg); color: var(--text); border-color: var(--border); }
+  .stat-lbl.neutral { color: var(--muted); }
 
-  /* ── LOADING / ERROR ── */
+  /* ERROR */
+  #err {
+    display: none;
+    background: var(--red-bg); color: var(--red);
+    border: 1px solid #F5BFBF; border-radius: 8px;
+    padding: 9px 14px; font-size: 12px; margin-bottom: 14px;
+  }
+
+  /* OVERLAY */
   #overlay {
     position: fixed; inset: 0;
-    background: rgba(245,244,240,0.85);
+    background: rgba(247,246,243,.88);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    z-index: 100; gap: 12px;
-    font-size: 14px; color: var(--muted);
+    gap: 10px; z-index: 200;
+    font-size: 13px; color: var(--muted);
   }
+  #overlay.hide { display: none; }
   .spinner {
-    width: 28px; height: 28px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent1);
+    width: 22px; height: 22px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
     border-radius: 50%;
-    animation: spin 0.7s linear infinite;
+    animation: spin .55s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #overlay.hidden { display: none; }
-  #error-banner {
-    display: none;
-    background: var(--accent4l); color: var(--accent4);
-    border: 1px solid var(--accent4);
-    border-radius: var(--radius); padding: 10px 16px;
-    font-size: 13px; margin-bottom: 14px;
+
+  /* FOOTER */
+  .footer {
+    margin-top: 18px;
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--faint);
   }
 </style>
 </head>
 <body>
 
-<!-- Loading overlay -->
 <div id="overlay">
   <div class="spinner"></div>
-  <span id="overlay-msg">Fetching live data from Google Sheets…</span>
+  <span id="ov-msg">Connecting to Google Sheets…</span>
 </div>
 
-<!-- Error banner -->
-<div id="error-banner" id="err"></div>
+<div class="page">
 
-<!-- HEADER -->
-<div class="header">
-  <div class="header-left">
-    <h1>GM Outturn Position — Rail Coach Factory, Kapurthala</h1>
-    <p id="last-updated">Loading…</p>
-  </div>
-  <div class="header-right">
-    <span class="pill">2025-26</span>
-    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
-  </div>
-</div>
+  <div id="err"></div>
 
-<!-- KPI ROW -->
-<div class="kpi-row" id="kpi-row">
-  <!-- populated by JS -->
-</div>
-
-<!-- MAIN GRID -->
-<div class="main-grid">
-
-  <!-- 1. Daily Bar Chart (col 1, row 1+2 span) -->
-  <div class="card" style="grid-row: span 2;">
-    <div class="card-title">Daily outturn — Shell, Furnishing &amp; Dispatch</div>
-    <div class="legend">
-      <div class="leg"><span class="leg-dot" style="background:#1A56A0"></span>Shell completed</div>
-      <div class="leg"><span class="leg-dot" style="background:#0F7A55"></span>Furnishing completed</div>
-      <div class="leg"><span class="leg-dot" style="background:#C2760F"></span>Coaches despatched</div>
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <h1>GM Outturn Position — Rail Coach Factory, Kapurthala</h1>
+      <div class="header-sub">Production &amp; Despatch Summary &nbsp;·&nbsp; 2025-26 &nbsp;·&nbsp; <span id="ts">—</span></div>
     </div>
-    <div class="chart-wrap" style="height:340px"><canvas id="c-daily"></canvas></div>
-  </div>
-
-  <!-- 2. Coach type target vs outturn (col 2, row 1) -->
-  <div class="card">
-    <div class="card-title">Target vs outturn by coach type</div>
-    <div class="legend">
-      <div class="leg"><span class="leg-dot" style="background:#B5D4F4"></span>Target</div>
-      <div class="leg"><span class="leg-dot" style="background:#1A56A0"></span>Outturn</div>
-    </div>
-    <div class="chart-wrap" style="height:160px"><canvas id="c-type"></canvas></div>
-  </div>
-
-  <!-- 3. Dispatch / Yard status (col 3, row 1) -->
-  <div class="card">
-    <div class="card-title">Despatch &amp; yard status</div>
-    <div class="status-grid" id="status-grid">
-      <!-- populated by JS -->
+    <div class="header-right">
+      <span class="tag">2025-26</span>
+      <button class="refresh-btn" id="refBtn" onclick="loadData()">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.5 2A5 5 0 1 0 11 6.5"/><polyline points="10.5,0 10.5,2 8.5,2"/>
+        </svg>
+        Refresh
+      </button>
     </div>
   </div>
 
-  <!-- 4. Production table (col 2, row 2) -->
-  <div class="card">
-    <div class="card-title">Production summary</div>
-    <table id="prod-table">
-      <!-- populated by JS -->
-    </table>
-  </div>
-
-  <!-- 5. % Achievement (col 3, row 2) -->
-  <div class="card">
-    <div class="card-title">% target achieved</div>
-    <div class="prog-list" id="prog-list">
-      <!-- populated by JS -->
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi blue">
+      <div class="kpi-label">Annual Target</div>
+      <div class="kpi-value" id="k1">2,550</div>
+      <div class="kpi-meta">Coaches planned for 2025-26</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Year Outturn (Shell)</div>
+      <div class="kpi-value" id="k2">2,005</div>
+      <div class="kpi-meta">Upto 18 Feb 2026</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">Year Despatched</div>
+      <div class="kpi-value" id="k3">1,961</div>
+      <div class="kpi-meta">Month total <b id="k3m">—</b></div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Balance to Produce</div>
+      <div class="kpi-value" id="k4">545</div>
+      <div class="kpi-meta"><b>34</b> rakes remaining</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Ready Coaches in Yard</div>
+      <div class="kpi-value" id="k5">41</div>
+      <div class="kpi-meta">Backlog outturn <b>126</b></div>
     </div>
   </div>
 
-</div>
+  <!-- MAIN GRID -->
+  <div class="main-grid">
 
-<div id="toast"></div>
+    <div class="left-col">
+
+      <!-- Daily chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Daily Outturn — February 2026</div>
+          <div class="legend">
+            <div class="leg"><span class="leg-dot" style="background:#2563EB"></span>Shell</div>
+            <div class="leg"><span class="leg-dot" style="background:#16A34A"></span>Furnishing</div>
+            <div class="leg"><span class="leg-dot" style="background:#D97706"></span>Despatched</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:188px"><canvas id="c-daily"></canvas></div>
+      </div>
+
+      <!-- Production table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Coach-wise Production Summary 2025-26</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Coach Type</th>
+              <th class="r">Target</th>
+              <th class="r">Rakes</th>
+              <th class="r">Outturn</th>
+              <th class="r">Balance</th>
+              <th class="r">Achieved</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <div class="right-col">
+
+      <!-- Month summary -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Month Summary — February 2026</div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-box blue">
+            <div class="stat-val" id="ms1">—</div>
+            <div class="stat-lbl">Shell</div>
+          </div>
+          <div class="stat-box green">
+            <div class="stat-val" id="ms2">—</div>
+            <div class="stat-lbl">Furnishing</div>
+          </div>
+          <div class="stat-box amber">
+            <div class="stat-val" id="ms3">—</div>
+            <div class="stat-lbl">Despatched</div>
+          </div>
+          <div class="stat-box neutral">
+            <div class="stat-val" id="ms4">—</div>
+            <div class="stat-lbl neutral">Avg / Day</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target vs outturn chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Target vs Outturn by Type</div>
+          <div class="legend">
+            <div class="leg"><span class="leg-dot" style="background:#C0D1F0"></span>Target</div>
+            <div class="leg"><span class="leg-dot" style="background:#2563EB"></span>Outturn</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:248px"><canvas id="c-type"></canvas></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Rail Coach Factory, Kapurthala &nbsp;·&nbsp; GM Outturn Position</span>
+    <span id="ft">Auto-refreshes every 5 minutes</span>
+  </div>
+
+</div>
 
 <script>
-/* ================================================================
-   CONFIG — update SHEET_ID if the spreadsheet changes
-   The sheet must be shared as "Anyone with the link → Viewer"
-   ================================================================ */
-const SHEET_ID  = '1QwD05_J-IzMu9wnJECRH95CDIluOhzuz8Fqh2TqnKAE';
-const CSV_BASE  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+const SHEET_ID = '1QwD05_J-IzMu9wnJECRH95CDIluOhzuz8Fqh2TqnKAE';
+let C = {};
 
-/* ── Chart instances (kept so we can destroy on refresh) ── */
-let charts = {};
+/* ── helpers ── */
+function destroyAll() { Object.values(C).forEach(c => { try { c.destroy(); } catch(e){} }); C = {}; }
 
-/* ── Colour helpers ── */
-const COLORS = {
-  blue:  '#1A56A0', bluel: '#B5D4F4',
-  green: '#0F7A55', greenl:'#CCF0E2',
-  amber: '#C2760F', amberl:'#FDE9C5',
-  red:   '#B83030', redl:  '#FAD4D4',
-};
-function pctColor(p) {
-  if (p >= 90) return COLORS.green;
-  if (p >= 65) return COLORS.blue;
-  if (p >= 30) return COLORS.amber;
-  return COLORS.red;
+function toN(v) {
+  const s = String(v||'').split('(')[0].replace(/[^0-9.\-]/g,'').trim();
+  const f = parseFloat(s);
+  return isNaN(f) ? null : f;
+}
+function getRakes(v) {
+  const m = String(v||'').match(/\((\d+)\)/);
+  return m ? parseInt(m[1]) : null;
+}
+/* Exact integer with Indian comma formatting — no K/M */
+function fmt(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return Math.round(v).toLocaleString('en-IN');
+}
+function pct(a,b) { return b ? Math.round(a/b*100) : 0; }
+function pctCol(p) {
+  return p >= 90 ? '#16A34A' : p >= 70 ? '#2563EB' : p >= 40 ? '#D97706' : '#DC2626';
 }
 
-/* ── CSV parser ── */
 function parseCSV(text) {
   const lines = text.trim().split('\n');
-  const headers = splitCSVLine(lines[0]).map(h => h.trim());
-  const rows = lines.slice(1)
-    .map(l => {
-      const vals = splitCSVLine(l);
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
-      return obj;
-    })
-    .filter(r => Object.values(r).some(v => v !== ''));
-  return { headers, rows };
+  const hdr = split(lines[0]);
+  const rows = lines.slice(1).map(l => {
+    const v = split(l); const o = {};
+    hdr.forEach((h,i) => o[h] = (v[i]||'').trim());
+    return o;
+  }).filter(r => Object.values(r).some(x => x));
+  return { hdr, rows };
 }
-function splitCSVLine(line) {
-  const out = []; let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') { inQ = !inQ; }
-    else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
-    else cur += c;
+function split(line) {
+  const out=[]; let cur='', q=false;
+  for(const c of line){
+    if(c==='"'){q=!q;}
+    else if(c===','&&!q){out.push(cur.trim());cur='';}
+    else cur+=c;
   }
-  out.push(cur);
-  return out;
-}
-function toNum(v) {
-  if (!v && v !== 0) return null;
-  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
-  return isNaN(n) ? null : n;
-}
-function fmtN(n, opts = {}) {
-  if (n === null || n === undefined || isNaN(n)) return '—';
-  const { prefix = '', suffix = '', decimals = 0 } = opts;
-  if (Math.abs(n) >= 1e6) return prefix + (n / 1e6).toFixed(1) + 'M' + suffix;
-  if (Math.abs(n) >= 1e3) return prefix + (n / 1e3).toFixed(1) + 'K' + suffix;
-  return prefix + Number(n.toFixed(decimals)).toLocaleString('en-IN') + suffix;
+  out.push(cur.trim()); return out;
 }
 
-/* ── Overlay helpers ── */
-function showOverlay(msg) {
-  document.getElementById('overlay').classList.remove('hidden');
-  document.getElementById('overlay-msg').textContent = msg;
-}
-function hideOverlay() {
-  document.getElementById('overlay').classList.add('hidden');
-}
-function showToast(msg, ms = 3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', ms);
-}
-function showError(msg) {
-  const el = document.getElementById('error-banner');
-  el.textContent = '⚠ ' + msg;
-  el.style.display = 'block';
+async function fetchCSV(gid) {
+  const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&cb=${Date.now()}`);
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.text();
 }
 
-/* ── Destroy all charts ── */
-function destroyAll() {
-  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
-  charts = {};
+/* ── fallback data ── */
+function fbDaily() {
+  return { hdr:['Date','Shell','Furnishing','Despatched'], rows:[
+    {Date:'02.02',Shell:'10',Furnishing:'0',Despatched:'0'},
+    {Date:'03.02',Shell:'9', Furnishing:'0',Despatched:'0'},
+    {Date:'04.02',Shell:'7', Furnishing:'0',Despatched:'16'},
+    {Date:'05.02',Shell:'10',Furnishing:'0',Despatched:'0'},
+    {Date:'06.02',Shell:'9', Furnishing:'0',Despatched:'13'},
+    {Date:'07.02',Shell:'9', Furnishing:'0',Despatched:'0'},
+    {Date:'09.02',Shell:'9', Furnishing:'0',Despatched:'0'},
+    {Date:'10.02',Shell:'7', Furnishing:'0',Despatched:'0'},
+    {Date:'11.02',Shell:'26',Furnishing:'1',Despatched:'17'},
+    {Date:'12.02',Shell:'3', Furnishing:'0',Despatched:'0'},
+    {Date:'13.02',Shell:'8', Furnishing:'0',Despatched:'14'},
+    {Date:'14.02',Shell:'9', Furnishing:'0',Despatched:'0'},
+    {Date:'16.02',Shell:'9', Furnishing:'0',Despatched:'17'},
+    {Date:'17.02',Shell:'8', Furnishing:'1',Despatched:'0'},
+    {Date:'18.02',Shell:'7', Furnishing:'3',Despatched:'0'},
+  ]};
+}
+function fbSummary() {
+  return { hdr:['Coach','Target (Rake)','Outturn','Balanced'], rows:[
+    {Coach:'MEMU',         'Target (Rake)':'360 (23)', Outturn:'285 (18)', Balanced:'75 (5)'},
+    {Coach:'LHB AC',       'Target (Rake)':'517 (32)', Outturn:'451 (28)', Balanced:'66 (4)'},
+    {Coach:'USBRL',        'Target (Rake)':'3',        Outturn:'3',        Balanced:'0'},
+    {Coach:'LHB NAC',      'Target (Rake)':'1249 (78)',Outturn:'987 (62)', Balanced:'262 (17)'},
+    {Coach:'Amrit Bharat', 'Target (Rake)':'330 (21)', Outturn:'263 (16)', Balanced:'67 (4)'},
+    {Coach:'Trainset VB',  'Target (Rake)':'64 (4)',   Outturn:'16 (1)',   Balanced:'48 (3)'},
+    {Coach:'Bangladesh',   'Target (Rake)':'20 (1)',   Outturn:'0',        Balanced:'20 (1)'},
+    {Coach:'Vistadom NG',  'Target (Rake)':'7',        Outturn:'0',        Balanced:'7'},
+  ]};
 }
 
-/* ── CHART DEFAULTS ── */
-const axisStyle = {
-  grid: { color: '#E0DED8' },
-  ticks: { font: { size: 10, family: "'DM Sans', sans-serif" }, color: '#8A8880' }
+/* ── axis style ── */
+const ax = {
+  grid:  { color:'#EEECE7' },
+  ticks: { font:{ size:10, family:'Inter' }, color:'#A1A1A6' }
 };
 
-/* ================================================================
-   RENDER FUNCTIONS — all accept the parsed sheet data
-   ================================================================ */
-
-/* --- KPI cards --- */
-function renderKPIs(data) {
-  /* Try to infer KPIs from sheet columns; fall back to known RCF structure */
-  const { headers, rows } = data;
-  const numCols = headers.filter(h => rows.some(r => toNum(r[h]) !== null));
-
-  /* Totals */
-  const totals = {};
-  numCols.forEach(h => {
-    totals[h] = rows.reduce((s, r) => s + (toNum(r[h]) || 0), 0);
-  });
-
-  /* Build 6 KPIs from first 6 numeric columns (or known names) */
-  const kpiDefs = numCols.slice(0, 6).map((col, i) => {
-    const val = totals[col];
-    const colors = ['blue','green','amber','blue','green','amber'];
-    return { label: col, value: val, color: colors[i] };
-  });
-
-  const html = kpiDefs.map(k => `
-    <div class="kpi ${k.color}">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${fmtN(k.value)}</div>
-      <div class="kpi-sub">Total across ${rows.length} rows</div>
-    </div>`).join('');
-  document.getElementById('kpi-row').innerHTML = html;
-}
-
-/* --- Daily bar chart --- */
-function renderDailyChart(data) {
-  const { headers, rows } = data;
-  /* Find a date/label column and up to 3 numeric series */
-  const textCol = headers.find(h => rows.some(r => isNaN(toNum(r[h])) || toNum(r[h]) === null));
-  const numCols = headers.filter(h => h !== textCol && rows.some(r => toNum(r[h]) !== null));
-
-  const labels = rows.map(r => r[textCol] || '');
-  const palette = [COLORS.blue, COLORS.green, COLORS.amber, COLORS.red];
-  const datasets = numCols.slice(0, 3).map((col, i) => ({
-    label: col,
-    data: rows.map(r => toNum(r[col])),
-    backgroundColor: palette[i] + 'CC',
-    borderRadius: 4,
-    borderSkipped: false,
-  }));
-
-  const ctx = document.getElementById('c-daily');
-  charts['daily'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-      scales: {
-        x: { ...axisStyle, ticks: { ...axisStyle.ticks, maxRotation: 45, autoSkip: labels.length > 20 } },
-        y: { ...axisStyle, beginAtZero: true }
-      }
-    }
-  });
-}
-
-/* --- Type comparison chart --- */
-function renderTypeChart(data) {
-  const { headers, rows } = data;
-  const textCol = headers.find(h => rows.some(r => isNaN(toNum(r[h])) || toNum(r[h]) === null));
-  const numCols = headers.filter(h => h !== textCol && rows.some(r => toNum(r[h]) !== null));
-  const labels = rows.map(r => r[textCol] || '');
-
-  const datasets = numCols.slice(0, 2).map((col, i) => ({
-    label: col,
-    data: rows.map(r => toNum(r[col])),
-    backgroundColor: i === 0 ? COLORS.bluel : COLORS.blue,
-    borderRadius: 4, borderSkipped: false,
-  }));
-
-  const ctx = document.getElementById('c-type');
-  charts['type'] = new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-      scales: {
-        x: { ...axisStyle, ticks: { ...axisStyle.ticks, maxRotation: 35 } },
-        y: { ...axisStyle, beginAtZero: true }
-      }
-    }
-  });
-}
-
-/* --- Dispatch / yard status boxes --- */
-function renderStatusGrid(data) {
-  const { headers, rows } = data;
-  const numCols = headers.filter(h => rows.some(r => toNum(r[h]) !== null));
-  const totals = {};
-  numCols.forEach(h => totals[h] = rows.reduce((s, r) => s + (toNum(r[h]) || 0), 0));
-
-  const cols = numCols.slice(0, 4);
-  const colors = [COLORS.blue, COLORS.green, COLORS.amber, COLORS.red];
-  const html = cols.map((col, i) => `
-    <div class="stat-box">
-      <div class="val" style="color:${colors[i]}">${fmtN(totals[col])}</div>
-      <div class="lbl">${col}</div>
-    </div>`).join('');
-  document.getElementById('status-grid').innerHTML = html;
-}
-
-/* --- Production table --- */
-function renderTable(data) {
-  const { headers, rows } = data;
-  const numCols = headers.filter(h => rows.some(r => toNum(r[h]) !== null));
-  const textCol = headers.find(h => !numCols.includes(h)) || headers[0];
-  const showCols = [textCol, ...numCols.slice(0, 3)];
-
-  const totals = {};
-  numCols.forEach(h => totals[h] = rows.reduce((s, r) => s + (toNum(r[h]) || 0), 0));
-
-  const thead = `<thead><tr>${showCols.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-  const tbody = `<tbody>
-    ${rows.map(r => `<tr>${showCols.map(h => `<td class="${numCols.includes(h) ? 'num' : ''}">${toNum(r[h]) !== null ? fmtN(toNum(r[h])) : r[h]}</td>`).join('')}</tr>`).join('')}
-    <tr class="total">${showCols.map(h => numCols.includes(h) ? `<td class="num">${fmtN(totals[h])}</td>` : `<td>Total</td>`).join('')}</tr>
-  </tbody>`;
-  document.getElementById('prod-table').innerHTML = thead + tbody;
-}
-
-/* --- Progress bars --- */
-function renderProgress(data) {
-  const { headers, rows } = data;
-  const numCols = headers.filter(h => rows.some(r => toNum(r[h]) !== null));
-  const textCol = headers.find(h => !numCols.includes(h)) || headers[0];
-  const col1 = numCols[0], col2 = numCols[1];
-
-  const items = rows.map(r => {
-    const t = toNum(r[col1]) || 0;
-    const o = toNum(r[col2]) || 0;
-    const pct = t > 0 ? Math.round(Math.min((o / t) * 100, 100)) : 0;
-    return { label: r[textCol] || '', pct };
-  }).sort((a, b) => b.pct - a.pct);
-
-  const html = items.map(item => `
-    <div class="prog-item">
-      <div class="prog-top">
-        <span>${item.label}</span>
-        <span>${item.pct}%</span>
-      </div>
-      <div class="prog-bg">
-        <div class="prog-fill" style="width:${item.pct}%;background:${pctColor(item.pct)}"></div>
-      </div>
-    </div>`).join('');
-  document.getElementById('prog-list').innerHTML = html;
-}
-
-/* ================================================================
-   DATA LOADING
-   Tries up to 3 sheet tabs (gid=0,1,2).
-   Falls back to embedded fallback data if all fail.
-   ================================================================ */
-async function fetchSheet(gid = 0) {
-  const url = `${CSV_BASE}&gid=${gid}&cachebust=${Date.now()}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.text();
-}
-
-/* Fallback data (mirrors the RCF GM Outturn document) */
-function getFallbackData() {
-  return {
-    headers: ['Coach Type', 'Target', 'Outturn', 'Balance'],
-    rows: [
-      { 'Coach Type': 'MEMU',         'Target': '360',  'Outturn': '285', 'Balance': '75'  },
-      { 'Coach Type': 'LHB AC',       'Target': '517',  'Outturn': '451', 'Balance': '66'  },
-      { 'Coach Type': 'LHB NAC',      'Target': '1249', 'Outturn': '987', 'Balance': '262' },
-      { 'Coach Type': 'Amrit Bharat', 'Target': '330',  'Outturn': '263', 'Balance': '67'  },
-      { 'Coach Type': 'VB Trainset',  'Target': '64',   'Outturn': '16',  'Balance': '48'  },
-      { 'Coach Type': 'Bangladesh',   'Target': '20',   'Outturn': '0',   'Balance': '20'  },
-      { 'Coach Type': 'USBRL',        'Target': '3',    'Outturn': '3',   'Balance': '0'   },
-      { 'Coach Type': 'Vistadom NG',  'Target': '7',    'Outturn': '0',   'Balance': '7'   },
-    ]
-  };
-}
-
-async function loadData() {
-  showOverlay('Fetching live data from Google Sheets…');
-  document.getElementById('error-banner').style.display = 'none';
-  document.querySelector('.refresh-btn').classList.add('spinning');
+/* ── render ── */
+function render(daily, summ) {
   destroyAll();
 
-  let data = null;
-  let usedFallback = false;
+  /* KPIs — derive totals from summary sheet */
+  let totalTarget = 0, totalOutturn = 0, totalBalance = 0;
+  summ.rows.forEach(r => {
+    totalTarget  += toN(r['Target (Rake)']) || 0;
+    totalOutturn += toN(r['Outturn'])       || 0;
+    totalBalance += toN(r['Balanced'])      || 0;
+  });
+  const mDesp  = daily.rows.reduce((s,r)=>s+(toN(r.Despatched)||0),0);
+  const yrDesp = 1961;
 
-  for (let gid of [0, 1, 2]) {
-    try {
-      const text = await fetchSheet(gid);
-      const parsed = parseCSV(text);
-      if (parsed.rows.length > 0 && parsed.headers.length > 1) {
-        data = parsed;
-        break;
+  document.getElementById('k1').textContent = fmt(totalTarget  || 2550);
+  document.getElementById('k2').textContent = fmt(totalOutturn || 2005);
+  document.getElementById('k3').textContent = fmt(yrDesp);
+  document.getElementById('k3m').textContent = fmt(mDesp);
+  document.getElementById('k4').textContent = fmt(totalBalance || 545);
+  document.getElementById('k5').textContent = '41';
+
+  /* Month summary */
+  const mShell = daily.rows.reduce((s,r)=>s+(toN(r.Shell)||0),0);
+  const mFurn  = daily.rows.reduce((s,r)=>s+(toN(r.Furnishing)||0),0);
+  const mDispatch = daily.rows.reduce((s,r)=>s+(toN(r.Despatched)||0),0);
+  document.getElementById('ms1').textContent = fmt(mShell);
+  document.getElementById('ms2').textContent = fmt(mFurn);
+  document.getElementById('ms3').textContent = fmt(mDispatch);
+  document.getElementById('ms4').textContent = (mShell / daily.rows.length).toFixed(1);
+
+  /* Daily bar chart */
+  const dlabels = daily.rows.map(r => r.Date || r[daily.hdr[0]]);
+  C.daily = new Chart(document.getElementById('c-daily'), {
+    type: 'bar',
+    data: {
+      labels: dlabels,
+      datasets: [
+        { label:'Shell',      data: daily.rows.map(r=>toN(r.Shell)||0),      backgroundColor:'#2563EB', borderRadius:3, borderSkipped:false },
+        { label:'Furnishing', data: daily.rows.map(r=>toN(r.Furnishing)||0), backgroundColor:'#16A34A', borderRadius:3, borderSkipped:false },
+        { label:'Despatched', data: daily.rows.map(r=>toN(r.Despatched)||0), backgroundColor:'#D97706', borderRadius:3, borderSkipped:false },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false} },
+      scales:{
+        x:{ ...ax, ticks:{...ax.ticks, autoSkip:false, maxRotation:45} },
+        y:{ ...ax, beginAtZero:true, ticks:{...ax.ticks, callback:v=>Number.isInteger(v)?v:null} }
       }
-    } catch(e) { /* try next gid */ }
-  }
+    }
+  });
 
-  if (!data) {
-    usedFallback = true;
-    data = getFallbackData();
-    showError('Could not fetch live sheet — make sure it is shared as "Anyone with the link → Viewer". Showing last-known data.');
-  }
+  /* Horizontal bar — target vs outturn */
+  const slabels = summ.rows.map(r => r.Coach || r[summ.hdr[0]]);
+  C.type = new Chart(document.getElementById('c-type'), {
+    type: 'bar',
+    data: {
+      labels: slabels,
+      datasets: [
+        { label:'Target',  data: summ.rows.map(r=>toN(r['Target (Rake)'])||0), backgroundColor:'#C0D1F0', borderRadius:3, borderSkipped:false },
+        { label:'Outturn', data: summ.rows.map(r=>toN(r['Outturn'])||0),       backgroundColor:'#2563EB', borderRadius:3, borderSkipped:false },
+      ]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false} },
+      scales:{
+        x:{ ...ax, beginAtZero:true, ticks:{...ax.ticks} },
+        y:{ ...ax, ticks:{...ax.ticks} }
+      }
+    }
+  });
 
-  try {
-    renderKPIs(data);
-    renderDailyChart(data);
-    renderTypeChart(data);
-    renderStatusGrid(data);
-    renderTable(data);
-    renderProgress(data);
-
-    const now = new Date();
-    document.getElementById('last-updated').textContent =
-      `${usedFallback ? 'Cached data' : 'Live data'} · Last updated ${now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`;
-  } catch(e) {
-    showError('Error rendering dashboard: ' + e.message);
-    console.error(e);
-  }
-
-  hideOverlay();
-  document.querySelector('.refresh-btn').classList.remove('spinning');
-  if (!usedFallback) showToast('✓ Data refreshed from Google Sheets');
+  /* Table */
+  let tT=0,tO=0,tB=0;
+  const rows = summ.rows.map(r => {
+    const t  = toN(r['Target (Rake)'])||0;
+    const o  = toN(r['Outturn'])||0;
+    const b  = toN(r['Balanced'])||0;
+    const rk = getRakes(r['Target (Rake)']);
+    const p  = pct(o,t); const col = pctCol(p);
+    tT+=t; tO+=o; tB+=b;
+    return `<tr>
+      <td>${r.Coach||r[summ.hdr[0]]}</td>
+      <td class="r">${fmt(t)}</td>
+      <td class="r">${rk!==null?rk:'—'}</td>
+      <td class="r">${fmt(o)}</td>
+      <td class="r">${fmt(b)}</td>
+      <td class="r">
+        <div class="pct-wrap">
+          <div class="mini-bg"><div class="mini-fill" style="width:${p}%;background:${col}"></div></div>
+          <span style="color:${col};font-weight:500;min-width:30px;text-align:right">${p}%</span>
+        </div>
+      </td>
+    </tr>`;
+  });
+  const tp = pct(tO,tT); const tc = pctCol(tp);
+  rows.push(`<tr class="total">
+    <td>Total</td>
+    <td class="r">${fmt(tT)}</td>
+    <td class="r">159</td>
+    <td class="r">${fmt(tO)}</td>
+    <td class="r">${fmt(tB)}</td>
+    <td class="r">
+      <div class="pct-wrap">
+        <div class="mini-bg"><div class="mini-fill" style="width:${tp}%;background:${tc}"></div></div>
+        <span style="color:${tc};font-weight:600;min-width:30px;text-align:right">${tp}%</span>
+      </div>
+    </td>
+  </tr>`);
+  document.getElementById('tbl-body').innerHTML = rows.join('');
 }
 
-/* Auto-refresh every 5 minutes */
+/* ── load ── */
+async function loadData() {
+  document.getElementById('overlay').classList.remove('hide');
+  document.getElementById('err').style.display = 'none';
+  document.getElementById('refBtn').classList.add('loading');
+
+  let daily, summ, fallback = false;
+  try {
+    const [t0, t1] = await Promise.all([fetchCSV(0), fetchCSV(1)]);
+    const d0 = parseCSV(t0), d1 = parseCSV(t1);
+    daily = d0.rows.length > 1 ? d0 : fbDaily();
+    summ  = d1.rows.length > 1 ? d1 : fbSummary();
+    if (d0.rows.length <= 1 && d1.rows.length <= 1) fallback = true;
+  } catch(e) {
+    daily = fbDaily(); summ = fbSummary(); fallback = true;
+  }
+
+  if (fallback) {
+    const el = document.getElementById('err');
+    el.innerHTML = '⚠ Sheet not publicly accessible — showing cached data. To enable live updates, share the sheet as <strong>"Anyone with the link → Viewer"</strong>.';
+    el.style.display = 'block';
+  }
+
+  render(daily, summ);
+
+  const now = new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+  const src  = fallback ? 'Cached · ' : 'Live · ';
+  document.getElementById('ts').textContent = src + now;
+  document.getElementById('ft').textContent = src + 'Auto-refreshes every 5 min';
+
+  document.getElementById('overlay').classList.add('hide');
+  document.getElementById('refBtn').classList.remove('loading');
+}
+
 loadData();
 setInterval(loadData, 5 * 60 * 1000);
 </script>
