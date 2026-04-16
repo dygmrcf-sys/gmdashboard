@@ -1,611 +1,697 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=1280"/>
-<title>GM Outturn Position — RCF Kapurthala</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GM Production Outturn Position — RCF Kapurthala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-
   :root {
-    --bg:       #F7F6F3;
-    --surface:  #FFFFFF;
-    --border:   #E4E2DC;
-    --text:     #18181B;
-    --muted:    #6B6B6F;
-    --faint:    #A1A1A6;
-    --blue:     #2563EB;
-    --blue-bg:  #EFF4FF;
-    --green:    #16A34A;
-    --green-bg: #F0FDF4;
-    --amber:    #D97706;
-    --amber-bg: #FFFBEB;
-    --red:      #DC2626;
-    --red-bg:   #FEF2F2;
-    --r:        10px;
+    --navy:#0d2340; --navy2:#1a3a5c; --gold:#c9a84c; --gold-lt:#e8d49e;
+    --teal:#1d6e5a; --teal-lt:#e1f5ee; --slate:#4a5568; --border:#dde3ec;
+    --bg:#f6f8fb; --white:#ffffff; --red:#a32d2d; --green:#3b6d11;
   }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);font-family:'Source Sans 3',sans-serif;color:#1a202c;}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ── Loading overlay ── */
+  #loading-overlay {
+    position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;
+    transition:opacity 0.5s ease;
+  }
+  #loading-overlay.fade-out{opacity:0;pointer-events:none;}
+  .loader-logo{font-family:'Playfair Display',serif;font-size:22px;color:#fff;margin-bottom:6px;letter-spacing:1px;}
+  .loader-sub{font-size:12px;color:var(--gold-lt);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
+  .loader-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.15);border-top-color:var(--gold);border-radius:50%;animation:spin 0.9s linear infinite;}
+  .loader-msg{margin-top:16px;font-size:12px;color:rgba(255,255,255,0.5);letter-spacing:1px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
-  html, body {
-    width: 100%; min-height: 100vh;
-    font-family: 'Inter', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 13px;
-    -webkit-font-smoothing: antialiased;
-  }
+  /* ── Error banner ── */
+  #error-banner{display:none;background:#fff3cd;border:1px solid #f0c060;border-radius:8px;padding:12px 18px;margin:16px 20px;font-size:13px;color:#7a5000;align-items:center;gap:10px;}
+  #error-banner svg{flex-shrink:0;}
 
-  .page {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 28px 32px 36px;
-  }
+  .dash{max-width:1140px;margin:0 auto;padding:22px 20px 36px;}
 
-  /* HEADER */
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 22px;
-  }
-  .header h1 {
-    font-size: 15px; font-weight: 600;
-    letter-spacing: -0.2px; color: var(--text);
-  }
-  .header-sub {
-    font-size: 12px; color: var(--muted);
-    margin-top: 3px; font-weight: 400;
-  }
-  .header-right { display: flex; align-items: center; gap: 10px; }
-  .tag {
-    font-size: 11px; font-weight: 500;
-    padding: 3px 10px; border-radius: 20px;
-    border: 1px solid var(--border);
-    color: var(--muted); background: var(--surface);
-  }
-  .refresh-btn {
-    font-family: 'Inter', sans-serif;
-    font-size: 12px; font-weight: 500;
-    padding: 6px 14px; border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface); color: var(--text);
-    cursor: pointer; transition: background .15s;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .refresh-btn:hover { background: var(--bg); }
-  .refresh-btn.loading { opacity: .45; pointer-events: none; }
+  /* ── Header ── */
+  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,#1e4f7a 100%);border-radius:12px;padding:24px 32px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .header-left .org{font-size:11px;letter-spacing:2.5px;color:var(--gold-lt);text-transform:uppercase;font-weight:500;margin-bottom:4px;}
+  .header-left h1{font-family:'Playfair Display',serif;font-size:26px;color:#fff;font-weight:600;line-height:1.2;margin-bottom:3px;}
+  .header-left .subtitle{font-size:13px;color:rgba(255,255,255,0.65);font-weight:300;}
+  .header-right{text-align:right;}
+  .header-right .date-label{font-size:11px;color:var(--gold-lt);letter-spacing:1.5px;text-transform:uppercase;font-weight:500;}
+  .header-right .date-val{font-size:22px;color:#fff;font-weight:500;font-family:'Playfair Display',serif;}
+  .header-right .as-of{font-size:11px;color:rgba(255,255,255,0.55);}
+  .header-right .refresh-btn{margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:5px 12px;color:rgba(255,255,255,0.8);font-size:11px;cursor:pointer;letter-spacing:0.5px;font-family:'Source Sans 3',sans-serif;transition:background 0.2s;}
+  .header-right .refresh-btn:hover{background:rgba(255,255,255,0.2);}
+  .header-right .refresh-btn svg{transition:transform 0.4s;}
+  .header-right .refresh-btn.spinning svg{animation:spin 0.9s linear infinite;}
 
-  /* KPI ROW */
-  .kpi-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-    margin-bottom: 18px;
-  }
-  .kpi {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-top: 3px solid var(--border);
-    border-radius: var(--r);
-    padding: 15px 17px;
-  }
-  .kpi.blue  { border-top-color: var(--blue); }
-  .kpi.green { border-top-color: var(--green); }
-  .kpi.amber { border-top-color: var(--amber); }
-  .kpi.red   { border-top-color: var(--red); }
-  .kpi-label {
-    font-size: 10.5px; font-weight: 500;
-    color: var(--muted);
-    text-transform: uppercase; letter-spacing: .05em;
-    margin-bottom: 8px;
-  }
-  .kpi-value {
-    font-size: 30px; font-weight: 600;
-    line-height: 1; letter-spacing: -1.5px;
-    color: var(--text); font-variant-numeric: tabular-nums;
-  }
-  .kpi-meta { font-size: 11px; color: var(--faint); margin-top: 5px; }
-  .kpi-meta b { color: var(--muted); font-weight: 500; }
+  .gold-bar{height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-lt),var(--gold));border-radius:2px;margin-bottom:20px;}
 
-  /* MAIN GRID */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1.55fr 1fr;
-    gap: 14px;
-    align-items: start;
-  }
-  .left-col  { display: flex; flex-direction: column; gap: 14px; }
-  .right-col { display: flex; flex-direction: column; gap: 14px; }
+  /* ── KPI row ── */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px;}
+  .kpi{background:var(--white);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;opacity:0;transform:translateY(12px);transition:opacity 0.4s ease,transform 0.4s ease;}
+  .kpi.visible{opacity:1;transform:translateY(0);}
+  .kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:10px 0 0 10px;}
+  .kpi.navy::before{background:var(--navy);}
+  .kpi.gold::before{background:var(--gold);}
+  .kpi.teal::before{background:var(--teal);}
+  .kpi.red::before{background:var(--red);}
+  .kpi-label{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:1.2px;font-weight:500;margin-bottom:6px;}
+  .kpi-val{font-size:32px;font-family:'Playfair Display',serif;font-weight:600;line-height:1;color:var(--navy);}
+  .kpi-sub{font-size:12px;color:var(--slate);margin-top:5px;}
+  .kpi-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:6px;}
+  .kpi-badge.green{background:#eaf3de;color:var(--green);}
+  .kpi-badge.amber{background:#faeeda;color:#633806;}
 
-  /* CARD */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    padding: 16px 18px;
-  }
-  .card-header {
-    display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 14px;
-    flex-wrap: wrap; gap: 8px;
-  }
-  .card-title {
-    font-size: 11px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: .06em;
-    color: var(--muted);
-  }
-  .legend { display: flex; gap: 12px; }
-  .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
-  .leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  /* ── Mid row ── */
+  .mid-row{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:20px;}
+  .card{background:var(--white);border:0.5px solid var(--border);border-radius:10px;padding:18px 20px;opacity:0;transform:translateY(10px);transition:opacity 0.45s ease,transform 0.45s ease;}
+  .card.visible{opacity:1;transform:translateY(0);}
+  .card-title{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--slate);font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .card-title::after{content:'';flex:1;height:1px;background:var(--border);}
 
-  /* CHART */
-  .chart-wrap { position: relative; width: 100%; }
+  /* ── Tables ── */
+  .daily-table,.coach-table{width:100%;border-collapse:collapse;}
+  .daily-table{font-size:13px;}
+  .coach-table{font-size:12.5px;}
+  .daily-table thead th,.coach-table thead th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--slate);font-weight:600;padding:6px 8px;border-bottom:1.5px solid var(--border);text-align:center;}
+  .daily-table thead th:first-child,.coach-table thead th:first-child{text-align:left;}
+  .daily-table tbody td,.coach-table tbody td{padding:7px 8px;border-bottom:0.5px solid #eef0f5;text-align:center;color:#2d3748;}
+  .daily-table tbody td:first-child,.coach-table tbody td:first-child{text-align:left;font-weight:500;color:var(--navy);}
+  .daily-table tbody tr:last-child td,.coach-table tbody tr:last-child td{border-bottom:none;}
+  .daily-table tbody tr:hover td,.coach-table tbody tr:hover td{background:#f6f8fb;}
+  .total-row td{background:#f0f4ff!important;font-weight:600!important;color:var(--navy)!important;border-top:1.5px solid var(--border)!important;}
 
-  /* TABLE */
-  table { width: 100%; border-collapse: collapse; }
-  thead th {
-    font-size: 10px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: .05em;
-    color: var(--faint); padding: 0 8px 8px;
-    border-bottom: 1px solid var(--border);
-    text-align: left; white-space: nowrap;
-  }
-  thead th.r { text-align: right; }
-  tbody td {
-    padding: 8px 8px; font-size: 12.5px;
-    border-bottom: 1px solid var(--bg);
-    color: var(--text); vertical-align: middle;
-    font-variant-numeric: tabular-nums;
-  }
-  tbody td.r { text-align: right; }
-  tbody tr:last-child td { border-bottom: none; }
-  tr.total td {
-    border-top: 1px solid var(--border);
-    border-bottom: none;
-    background: var(--bg);
-    font-weight: 600;
-  }
-  .pct-wrap { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
-  .mini-bg  { width: 48px; height: 5px; background: var(--bg); border-radius: 3px; flex-shrink:0; }
-  .mini-fill{ height: 5px; border-radius: 3px; }
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+  .pill-navy{background:#e8edf6;color:var(--navy);}
+  .pill-teal{background:var(--teal-lt);color:var(--teal);}
+  .pill-amber{background:#faeeda;color:#633806;}
 
-  /* STAT BOXES */
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-box {
-    border-radius: 8px; padding: 13px 15px; text-align: center;
-    border: 1px solid transparent;
-  }
-  .stat-val { font-size: 26px; font-weight: 600; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
-  .stat-lbl { font-size: 10px; margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
-  .stat-box.blue  { background: var(--blue-bg);  color: var(--blue);  border-color: #C0D1F0; }
-  .stat-box.green { background: var(--green-bg); color: var(--green); border-color: #B8E4C8; }
-  .stat-box.amber { background: var(--amber-bg); color: var(--amber); border-color: #EDD89A; }
-  .stat-box.neutral { background: var(--bg); color: var(--text); border-color: var(--border); }
-  .stat-lbl.neutral { color: var(--muted); }
+  /* ── Progress bars ── */
+  .progress-section{margin-bottom:0;}
+  .progress-item{margin-bottom:12px;}
+  .prog-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+  .prog-label{font-size:12px;color:var(--slate);font-weight:500;}
+  .prog-val{font-size:12px;font-weight:600;color:var(--navy);}
+  .prog-bar{height:7px;background:#eef0f5;border-radius:4px;overflow:hidden;}
+  .prog-fill{height:100%;border-radius:4px;width:0;transition:width 1.2s cubic-bezier(0.25,0.46,0.45,0.94);}
 
-  /* ERROR */
-  #err {
-    display: none;
-    background: var(--red-bg); color: var(--red);
-    border: 1px solid #F5BFBF; border-radius: 8px;
-    padding: 9px 14px; font-size: 12px; margin-bottom: 14px;
-  }
+  /* ── Bottom row ── */
+  .bottom-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:20px;}
+  .metric-box{background:#f6f8fb;border-radius:8px;padding:16px;text-align:center;}
+  .metric-box.amber-box{background:#fff8ee;border-radius:8px;padding:16px;text-align:center;border:0.5px solid #f0d9a0;}
+  .metric-box .mbox-label{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:6px;}
+  .metric-box.amber-box .mbox-label{color:#633806;}
+  .metric-box:not(.amber-box) .mbox-label{color:var(--slate);}
+  .metric-box .mbox-val{font-size:42px;font-family:'Playfair Display',serif;font-weight:600;}
+  .metric-box:not(.amber-box) .mbox-val{color:var(--teal);}
+  .metric-box.amber-box .mbox-val{color:#ba7517;}
+  .metric-box .mbox-sub{font-size:12px;margin-top:2px;}
+  .metric-box:not(.amber-box) .mbox-sub{color:var(--slate);}
+  .metric-box.amber-box .mbox-sub{color:#633806;}
+  .avg-row-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f6f8fb;border-radius:8px;}
+  .avg-row-item .albl{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+  .avg-row-item .asub{font-size:11px;color:#a0aec0;margin-top:2px;}
+  .avg-row-item .aval{font-size:28px;font-family:'Playfair Display',serif;font-weight:600;}
 
-  /* OVERLAY */
-  #overlay {
-    position: fixed; inset: 0;
-    background: rgba(247,246,243,.88);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 10px; z-index: 200;
-    font-size: 13px; color: var(--muted);
-  }
-  #overlay.hide { display: none; }
-  .spinner {
-    width: 22px; height: 22px;
-    border: 2px solid var(--border);
-    border-top-color: var(--blue);
-    border-radius: 50%;
-    animation: spin .55s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* ── Chart ── */
+  .chart-wrap{position:relative;width:100%;height:180px;margin-top:14px;}
 
-  /* FOOTER */
-  .footer {
-    margin-top: 18px;
-    display: flex; justify-content: space-between;
-    font-size: 11px; color: var(--faint);
+  /* ── Footer ── */
+  .footer{border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .footer-left,.footer-right{font-size:11px;color:#a0aec0;letter-spacing:0.5px;}
+
+  /* ── Skeleton pulse ── */
+  .skeleton{background:linear-gradient(90deg,#eef0f5 25%,#e2e5ed 50%,#eef0f5 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;display:inline-block;}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  @media(max-width:780px){
+    .kpi-row{grid-template-columns:repeat(2,1fr);}
+    .mid-row{grid-template-columns:1fr;}
+    .bottom-row{grid-template-columns:1fr;}
   }
 </style>
 </head>
 <body>
 
-<div id="overlay">
-  <div class="spinner"></div>
-  <span id="ov-msg">Connecting to Google Sheets…</span>
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="loader-logo">Rail Coach Factory · Kapurthala</div>
+  <div class="loader-sub">GM Production Dashboard</div>
+  <div class="loader-spinner"></div>
+  <div class="loader-msg" id="loader-msg">Fetching live data from Google Sheets…</div>
 </div>
 
-<div class="page">
+<!-- Error banner -->
+<div id="error-banner">
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#d08000" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="#d08000" stroke-width="2" stroke-linecap="round"/></svg>
+  <span id="error-text">Unable to load live data. Displaying last cached values.</span>
+</div>
 
-  <div id="err"></div>
-
-  <!-- HEADER -->
+<div class="dash" id="main-dash" style="visibility:hidden;">
   <div class="header">
-    <div>
-      <h1>GM Outturn Position — Rail Coach Factory, Kapurthala</h1>
-      <div class="header-sub">Production &amp; Despatch Summary &nbsp;·&nbsp; 2025-26 &nbsp;·&nbsp; <span id="ts">—</span></div>
+    <div class="header-left">
+      <div class="org">Rail Coach Factory · Kapurthala</div>
+      <h1>GM Production Outturn Position</h1>
+      <div class="subtitle">Year 2026–27 &nbsp;|&nbsp; Shell · Furnishing · Despatch Monitoring</div>
     </div>
     <div class="header-right">
-      <span class="tag">2025-26</span>
-      <button class="refresh-btn" id="refBtn" onclick="loadData()">
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.5 2A5 5 0 1 0 11 6.5"/><polyline points="10.5,0 10.5,2 8.5,2"/>
-        </svg>
-        Refresh
+      <div class="date-label">Position as of</div>
+      <div class="date-val" id="hdr-date">—</div>
+      <div class="as-of" id="hdr-asof">April MTH &nbsp;|&nbsp; Annual Year Start</div>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadData(true)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh Data
       </button>
     </div>
   </div>
+  <div class="gold-bar"></div>
 
-  <!-- KPI ROW -->
+  <!-- KPIs -->
   <div class="kpi-row">
-    <div class="kpi blue">
-      <div class="kpi-label">Annual Target</div>
-      <div class="kpi-value" id="k1">2,550</div>
-      <div class="kpi-meta">Coaches planned for 2025-26</div>
+    <div class="kpi navy" id="kpi-shells">
+      <div class="kpi-label">Shells (MTH)</div>
+      <div class="kpi-val" id="kv-shells">—</div>
+      <div class="kpi-sub" id="ks-shells">Annual: — | Avg/day: —</div>
+      <span class="kpi-badge green">On Track</span>
     </div>
-    <div class="kpi green">
-      <div class="kpi-label">Year Outturn (Shell)</div>
-      <div class="kpi-value" id="k2">2,005</div>
-      <div class="kpi-meta">Upto 18 Feb 2026</div>
+    <div class="kpi gold" id="kpi-furn">
+      <div class="kpi-label">Furnishing (MTH)</div>
+      <div class="kpi-val" id="kv-furn">—</div>
+      <div class="kpi-sub" id="ks-furn">Annual: — | Avg/day: —</div>
+      <span class="kpi-badge amber">Monitoring</span>
     </div>
-    <div class="kpi amber">
-      <div class="kpi-label">Year Despatched</div>
-      <div class="kpi-value" id="k3">1,961</div>
-      <div class="kpi-meta">Month total <b id="k3m">—</b></div>
+    <div class="kpi teal" id="kpi-desp">
+      <div class="kpi-label">Despatched (MTH)</div>
+      <div class="kpi-val" id="kv-desp">—</div>
+      <div class="kpi-sub" id="ks-desp">Annual: — | Avg/day: —</div>
+      <span class="kpi-badge green">Active</span>
     </div>
-    <div class="kpi blue">
-      <div class="kpi-label">Balance to Produce</div>
-      <div class="kpi-value" id="k4">545</div>
-      <div class="kpi-meta"><b>34</b> rakes remaining</div>
-    </div>
-    <div class="kpi red">
-      <div class="kpi-label">Ready Coaches in Yard</div>
-      <div class="kpi-value" id="k5">41</div>
-      <div class="kpi-meta">Backlog outturn <b>126</b></div>
+    <div class="kpi red" id="kpi-balance">
+      <div class="kpi-label">Balanced Coaches</div>
+      <div class="kpi-val" id="kv-balance">—</div>
+      <div class="kpi-sub" id="ks-balance">Target: — | (— Rakes)</div>
+      <span class="kpi-badge amber" id="kb-balance">— Achieved</span>
     </div>
   </div>
 
-  <!-- MAIN GRID -->
-  <div class="main-grid">
-
-    <div class="left-col">
-
-      <!-- Daily chart -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Daily Outturn — February 2026</div>
-          <div class="legend">
-            <div class="leg"><span class="leg-dot" style="background:#2563EB"></span>Shell</div>
-            <div class="leg"><span class="leg-dot" style="background:#16A34A"></span>Furnishing</div>
-            <div class="leg"><span class="leg-dot" style="background:#D97706"></span>Despatched</div>
-          </div>
-        </div>
-        <div class="chart-wrap" style="height:188px"><canvas id="c-daily"></canvas></div>
-      </div>
-
-      <!-- Production table -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Coach-wise Production Summary 2025-26</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Coach Type</th>
-              <th class="r">Target</th>
-              <th class="r">Rakes</th>
-              <th class="r">Outturn</th>
-              <th class="r">Balance</th>
-              <th class="r">Achieved</th>
-            </tr>
-          </thead>
-          <tbody id="tbl-body"></tbody>
-        </table>
-      </div>
-
+  <!-- Mid row -->
+  <div class="mid-row">
+    <div class="card" id="card-daily">
+      <div class="card-title">Daily Production Log</div>
+      <table class="daily-table">
+        <thead><tr><th>Date</th><th>Shell</th><th>Furnishing</th><th>Despatched</th></tr></thead>
+        <tbody id="daily-tbody"></tbody>
+      </table>
+      <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
     </div>
+    <div class="card" id="card-coachwise">
+      <div class="card-title">Coach-wise Position 2026–27</div>
+      <table class="coach-table">
+        <thead><tr><th>Coach Type</th><th>Target</th><th>Outturn</th><th>Balance</th></tr></thead>
+        <tbody id="coach-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 
-    <div class="right-col">
-
-      <!-- Month summary -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Month Summary — February 2026</div>
+  <!-- Bottom row -->
+  <div class="bottom-row">
+    <div class="card" id="card-progress">
+      <div class="card-title">Annual Outturn Progress</div>
+      <div class="progress-section" id="progress-section"></div>
+    </div>
+    <div class="card" id="card-yard">
+      <div class="card-title">Yard &amp; Backlog Status</div>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px;">
+        <div class="metric-box">
+          <div class="mbox-label">Ready Coaches in Yard</div>
+          <div class="mbox-val" id="yard-val">—</div>
+          <div class="mbox-sub">Coaches awaiting despatch</div>
         </div>
-        <div class="stat-grid">
-          <div class="stat-box blue">
-            <div class="stat-val" id="ms1">—</div>
-            <div class="stat-lbl">Shell</div>
-          </div>
-          <div class="stat-box green">
-            <div class="stat-val" id="ms2">—</div>
-            <div class="stat-lbl">Furnishing</div>
-          </div>
-          <div class="stat-box amber">
-            <div class="stat-val" id="ms3">—</div>
-            <div class="stat-lbl">Despatched</div>
-          </div>
-          <div class="stat-box neutral">
-            <div class="stat-val" id="ms4">—</div>
-            <div class="stat-lbl neutral">Avg / Day</div>
-          </div>
+        <div class="metric-box amber-box">
+          <div class="mbox-label">Backlog — Previous Year</div>
+          <div class="mbox-val" id="backlog-val">—</div>
+          <div class="mbox-sub">Coaches carried forward</div>
         </div>
       </div>
-
-      <!-- Target vs outturn chart -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Target vs Outturn by Type</div>
-          <div class="legend">
-            <div class="leg"><span class="leg-dot" style="background:#C0D1F0"></span>Target</div>
-            <div class="leg"><span class="leg-dot" style="background:#2563EB"></span>Outturn</div>
-          </div>
+    </div>
+    <div class="card" id="card-avg">
+      <div class="card-title">MTH Average Performance</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+        <div class="avg-row-item">
+          <div><div class="albl">Shell — MTH Avg</div><div class="asub">Coaches / working day</div></div>
+          <div class="aval" style="color:var(--navy);" id="avg-shell">—</div>
         </div>
-        <div class="chart-wrap" style="height:248px"><canvas id="c-type"></canvas></div>
+        <div class="avg-row-item">
+          <div><div class="albl">Furnishing — MTH Avg</div><div class="asub">Coaches / working day</div></div>
+          <div class="aval" style="color:var(--gold);" id="avg-furn">—</div>
+        </div>
+        <div class="avg-row-item">
+          <div><div class="albl">Despatch — MTH Avg</div><div class="asub">Coaches / working day</div></div>
+          <div class="aval" style="color:var(--teal);" id="avg-desp">—</div>
+        </div>
       </div>
-
     </div>
   </div>
 
   <div class="footer">
-    <span>Rail Coach Factory, Kapurthala &nbsp;·&nbsp; GM Outturn Position</span>
-    <span id="ft">Auto-refreshes every 5 minutes</span>
+    <div class="footer-left">Rail Coach Factory · Kapurthala &nbsp;|&nbsp; General Manager's Office &nbsp;|&nbsp; Confidential — For Internal Use Only</div>
+    <div class="footer-right" id="footer-source">Data Source: Google Sheets — 2026–27 &nbsp;|&nbsp; Last fetched: <span id="fetch-time">—</span></div>
   </div>
-
 </div>
 
 <script>
+/* ─────────────────────────────────────────────
+   CONFIG
+───────────────────────────────────────────── */
 const SHEET_ID = '1QwD05_J-IzMu9wnJECRH95CDIluOhzuz8Fqh2TqnKAE';
-let C = {};
+const SHEET_NAME = '2026-27';
+// Public CSV export URL — works for publicly shared Google Sheets
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
-/* ── helpers ── */
-function destroyAll() { Object.values(C).forEach(c => { try { c.destroy(); } catch(e){} }); C = {}; }
+let chartInstance = null;
 
-function toN(v) {
-  const s = String(v||'').split('(')[0].replace(/[^0-9.\-]/g,'').trim();
-  const f = parseFloat(s);
-  return isNaN(f) ? null : f;
-}
-function getRakes(v) {
-  const m = String(v||'').match(/\((\d+)\)/);
-  return m ? parseInt(m[1]) : null;
-}
-/* Exact integer with Indian comma formatting — no K/M */
-function fmt(v) {
-  if (v === null || v === undefined || isNaN(v)) return '—';
-  return Math.round(v).toLocaleString('en-IN');
-}
-function pct(a,b) { return b ? Math.round(a/b*100) : 0; }
-function pctCol(p) {
-  return p >= 90 ? '#16A34A' : p >= 70 ? '#2563EB' : p >= 40 ? '#D97706' : '#DC2626';
+/* ─────────────────────────────────────────────
+   FETCH & PARSE
+───────────────────────────────────────────── */
+async function fetchSheetData() {
+  const res = await fetch(CSV_URL + '&t=' + Date.now()); // cache-bust
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.text();
 }
 
 function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const hdr = split(lines[0]);
-  const rows = lines.slice(1).map(l => {
-    const v = split(l); const o = {};
-    hdr.forEach((h,i) => o[h] = (v[i]||'').trim());
-    return o;
-  }).filter(r => Object.values(r).some(x => x));
-  return { hdr, rows };
-}
-function split(line) {
-  const out=[]; let cur='', q=false;
-  for(const c of line){
-    if(c==='"'){q=!q;}
-    else if(c===','&&!q){out.push(cur.trim());cur='';}
-    else cur+=c;
+  // Minimal CSV parser handling quoted fields
+  const rows = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cols.push(cur.trim());
+    rows.push(cols);
   }
-  out.push(cur.trim()); return out;
+  return rows;
 }
 
-async function fetchCSV(gid) {
-  const r = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&cb=${Date.now()}`);
-  if (!r.ok) throw new Error('HTTP '+r.status);
-  return r.text();
+function clean(v) {
+  if (!v) return '';
+  return v.replace(/^["']|["']$/g, '').trim();
 }
 
-/* ── fallback data ── */
-function fbDaily() {
-  return { hdr:['Date','Shell','Furnishing','Despatched'], rows:[
-    {Date:'02.02',Shell:'10',Furnishing:'0',Despatched:'0'},
-    {Date:'03.02',Shell:'9', Furnishing:'0',Despatched:'0'},
-    {Date:'04.02',Shell:'7', Furnishing:'0',Despatched:'16'},
-    {Date:'05.02',Shell:'10',Furnishing:'0',Despatched:'0'},
-    {Date:'06.02',Shell:'9', Furnishing:'0',Despatched:'13'},
-    {Date:'07.02',Shell:'9', Furnishing:'0',Despatched:'0'},
-    {Date:'09.02',Shell:'9', Furnishing:'0',Despatched:'0'},
-    {Date:'10.02',Shell:'7', Furnishing:'0',Despatched:'0'},
-    {Date:'11.02',Shell:'26',Furnishing:'1',Despatched:'17'},
-    {Date:'12.02',Shell:'3', Furnishing:'0',Despatched:'0'},
-    {Date:'13.02',Shell:'8', Furnishing:'0',Despatched:'14'},
-    {Date:'14.02',Shell:'9', Furnishing:'0',Despatched:'0'},
-    {Date:'16.02',Shell:'9', Furnishing:'0',Despatched:'17'},
-    {Date:'17.02',Shell:'8', Furnishing:'1',Despatched:'0'},
-    {Date:'18.02',Shell:'7', Furnishing:'3',Despatched:'0'},
-  ]};
-}
-function fbSummary() {
-  return { hdr:['Coach','Target (Rake)','Outturn','Balanced'], rows:[
-    {Coach:'MEMU',         'Target (Rake)':'360 (23)', Outturn:'285 (18)', Balanced:'75 (5)'},
-    {Coach:'LHB AC',       'Target (Rake)':'517 (32)', Outturn:'451 (28)', Balanced:'66 (4)'},
-    {Coach:'USBRL',        'Target (Rake)':'3',        Outturn:'3',        Balanced:'0'},
-    {Coach:'LHB NAC',      'Target (Rake)':'1249 (78)',Outturn:'987 (62)', Balanced:'262 (17)'},
-    {Coach:'Amrit Bharat', 'Target (Rake)':'330 (21)', Outturn:'263 (16)', Balanced:'67 (4)'},
-    {Coach:'Trainset VB',  'Target (Rake)':'64 (4)',   Outturn:'16 (1)',   Balanced:'48 (3)'},
-    {Coach:'Bangladesh',   'Target (Rake)':'20 (1)',   Outturn:'0',        Balanced:'20 (1)'},
-    {Coach:'Vistadom NG',  'Target (Rake)':'7',        Outturn:'0',        Balanced:'7'},
-  ]};
+function num(v) {
+  const n = parseFloat(clean(v).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
 }
 
-/* ── axis style ── */
-const ax = {
-  grid:  { color:'#EEECE7' },
-  ticks: { font:{ size:10, family:'Inter' }, color:'#A1A1A6' }
-};
+/* ─────────────────────────────────────────────
+   DATA EXTRACTION
+   The sheet layout (from the HTML source data):
+   We parse named sections using header keywords.
+───────────────────────────────────────────── */
+function extractData(rows) {
+  /* Build a map of row-index by first-cell keyword for section detection */
+  const cleaned = rows.map(r => r.map(clean));
 
-/* ── render ── */
-function render(daily, summ) {
-  destroyAll();
+  const data = {
+    positionDate: '',
+    mthShells: 0, mthFurn: 0, mthDesp: 0,
+    annShells: 0, annFurn: 0, annDesp: 0,
+    avgShells: 0, avgFurn: 0, avgDesp: 0,
+    target: 0, outturn: 0, balance: 0,
+    yard: 0, backlog: 0,
+    dailyRows: [],    // [{date,shell,furn,desp}]
+    coachRows: [],    // [{type,target,outturn,balance,pillClass}]
+  };
 
-  /* KPIs — derive totals from summary sheet */
-  let totalTarget = 0, totalOutturn = 0, totalBalance = 0;
-  summ.rows.forEach(r => {
-    totalTarget  += toN(r['Target (Rake)']) || 0;
-    totalOutturn += toN(r['Outturn'])       || 0;
-    totalBalance += toN(r['Balanced'])      || 0;
+  /* ── Scan all rows ── */
+  for (let i = 0; i < cleaned.length; i++) {
+    const row = cleaned[i];
+    const r0 = row[0] ? row[0].toLowerCase() : '';
+
+    // Position date
+    if (r0.includes('position') && r0.includes('as of')) {
+      data.positionDate = row[1] || row[0];
+    }
+
+    // KPI summary block: "shells (mth)" | "furnishing (mth)" | "despatched (mth)"
+    if (r0.includes('shells') && r0.includes('mth')) {
+      data.mthShells = num(row[1]); data.annShells = num(row[2]); data.avgShells = num(row[3]);
+    }
+    if ((r0.includes('furnish') && r0.includes('mth'))) {
+      data.mthFurn = num(row[1]); data.annFurn = num(row[2]); data.avgFurn = num(row[3]);
+    }
+    if (r0.includes('despatch') && r0.includes('mth')) {
+      data.mthDesp = num(row[1]); data.annDesp = num(row[2]); data.avgDesp = num(row[3]);
+    }
+
+    // Balanced coaches
+    if (r0.includes('balanced') || r0.includes('balance coaches')) {
+      data.balance = num(row[1]); data.target = num(row[2]); 
+    }
+
+    // Yard / Backlog
+    if (r0.includes('yard') || r0.includes('ready coaches')) {
+      data.yard = num(row[1]);
+    }
+    if (r0.includes('backlog') || r0.includes('previous year')) {
+      data.backlog = num(row[1]);
+    }
+
+    // Daily log section header: look for "Date" / "Shell" / "Furnishing" in same row
+    const hasDate = row.some(c => c.toLowerCase() === 'date');
+    const hasShell = row.some(c => c.toLowerCase().includes('shell'));
+    const hasFurn = row.some(c => c.toLowerCase().includes('furnish'));
+    const hasDesp = row.some(c => c.toLowerCase().includes('despatch'));
+
+    if (hasDate && hasShell && hasFurn && hasDesp) {
+      // Find column indices
+      const ci = {
+        date: row.findIndex(c => c.toLowerCase() === 'date'),
+        shell: row.findIndex(c => c.toLowerCase().includes('shell')),
+        furn: row.findIndex(c => c.toLowerCase().includes('furnish')),
+        desp: row.findIndex(c => c.toLowerCase().includes('despatch')),
+      };
+      // Collect daily rows until blank or "total"
+      for (let j = i + 1; j < cleaned.length; j++) {
+        const dr = cleaned[j];
+        const d0 = dr[ci.date] || '';
+        if (!d0) break;
+        if (d0.toLowerCase().includes('total')) {
+          // Total row — store as last
+          data.dailyRows.push({ date: 'Month / Year Total', shell: num(dr[ci.shell]), furn: num(dr[ci.furn]), desp: num(dr[ci.desp]), isTotal: true });
+          break;
+        }
+        data.dailyRows.push({ date: d0, shell: num(dr[ci.shell]), furn: num(dr[ci.furn]), desp: num(dr[ci.desp]), isTotal: false });
+      }
+    }
+
+    // Coach-wise section header: "coach type" / "type"
+    const hasType = row.some(c => /coach.?type|^type$/i.test(c));
+    const hasTarget = row.some(c => /target/i.test(c));
+    const hasOutturn = row.some(c => /outturn/i.test(c));
+
+    if (hasType && hasTarget && hasOutturn) {
+      const ci = {
+        type: row.findIndex(c => /coach.?type|^type$/i.test(c)),
+        target: row.findIndex(c => /target/i.test(c)),
+        outturn: row.findIndex(c => /outturn/i.test(c)),
+        balance: row.findIndex(c => /balance/i.test(c)),
+      };
+      for (let j = i + 1; j < cleaned.length; j++) {
+        const cr = cleaned[j];
+        const t = cr[ci.type] || '';
+        if (!t) break;
+        const isTotal = t.toLowerCase().includes('total');
+        const tgt = num(cr[ci.target]);
+        const out = num(cr[ci.outturn]);
+        const bal = ci.balance >= 0 ? num(cr[ci.balance]) : (tgt - out);
+        let pillClass = 'pill-navy';
+        if (/ac|namo|amrit.*ac|bangladesh.*ac|acra/i.test(t)) pillClass = 'pill-teal';
+        if (/rdso|ra |acra/i.test(t)) pillClass = 'pill-amber';
+        data.coachRows.push({ type: t, target: tgt, outturn: out, balance: bal, pillClass, isTotal });
+      }
+    }
+  }
+
+  /* ── Fallback: derive totals from daily rows if KPI fields not directly found ── */
+  const nonTotal = data.dailyRows.filter(r => !r.isTotal);
+  if (!data.mthShells && nonTotal.length) data.mthShells = nonTotal.reduce((s, r) => s + r.shell, 0);
+  if (!data.mthFurn && nonTotal.length) data.mthFurn = nonTotal.reduce((s, r) => s + r.furn, 0);
+  if (!data.mthDesp && nonTotal.length) data.mthDesp = nonTotal.reduce((s, r) => s + r.desp, 0);
+
+  // Use total row values if found
+  const totalRow = data.dailyRows.find(r => r.isTotal);
+  if (totalRow) {
+    if (!data.mthShells) data.mthShells = totalRow.shell;
+    if (!data.mthFurn) data.mthFurn = totalRow.furn;
+    if (!data.mthDesp) data.mthDesp = totalRow.desp;
+    data.annShells = data.annShells || totalRow.shell;
+    data.annFurn = data.annFurn || totalRow.furn;
+    data.annDesp = data.annDesp || totalRow.desp;
+  }
+
+  // Derive avg from non-total working days
+  const wdays = nonTotal.length || 1;
+  if (!data.avgShells) data.avgShells = +(data.mthShells / wdays).toFixed(1);
+  if (!data.avgFurn) data.avgFurn = +(data.mthFurn / wdays).toFixed(1);
+  if (!data.avgDesp) data.avgDesp = +(data.mthDesp / wdays).toFixed(1);
+
+  // Derive coach totals from coach rows
+  if (!data.target && data.coachRows.length) {
+    const tot = data.coachRows.find(r => r.isTotal);
+    if (tot) { data.target = tot.target; data.outturn = tot.outturn; data.balance = tot.balance; }
+    else {
+      const all = data.coachRows.filter(r => !r.isTotal);
+      data.target = all.reduce((s, r) => s + r.target, 0);
+      data.outturn = all.reduce((s, r) => s + r.outturn, 0);
+      data.balance = data.target - data.outturn;
+    }
+  }
+
+  return data;
+}
+
+/* ─────────────────────────────────────────────
+   FALLBACK STATIC DATA (matches HTML source)
+───────────────────────────────────────────── */
+function getFallbackData() {
+  return {
+    positionDate: '15 April 2026',
+    mthShells: 63, mthFurn: 11, mthDesp: 102,
+    annShells: 63, annFurn: 11, annDesp: 102,
+    avgShells: 4.5, avgFurn: 0.9, avgDesp: 7.4,
+    target: 2986, outturn: 11, balance: 2975,
+    yard: 38, backlog: 94,
+    dailyRows: [
+      {date:'01.04.26',shell:1,furn:1,desp:0},{date:'02.04.26',shell:1,furn:2,desp:15},
+      {date:'03.04.26',shell:6,furn:1,desp:12},{date:'04.04.26',shell:3,furn:3,desp:0},
+      {date:'06.04.26',shell:5,furn:1,desp:30},{date:'07.04.26',shell:6,furn:1,desp:0},
+      {date:'08.04.26',shell:7,furn:0,desp:0},{date:'09.04.26',shell:5,furn:0,desp:17},
+      {date:'10.04.26',shell:8,furn:1,desp:0},{date:'11.04.26',shell:8,furn:0,desp:15},
+      {date:'13.04.26',shell:9,furn:1,desp:0},{date:'15.04.26',shell:4,furn:0,desp:13},
+      {date:'Month / Year Total',shell:63,furn:11,desp:102,isTotal:true}
+    ],
+    coachRows: [
+      {type:'MEMU',target:384,outturn:5,balance:379,pillClass:'pill-navy'},
+      {type:'HS Spart',target:32,outturn:0,balance:32,pillClass:'pill-navy'},
+      {type:'SPIC',target:6,outturn:0,balance:6,pillClass:'pill-navy'},
+      {type:'Train Set VB',target:96,outturn:0,balance:96,pillClass:'pill-navy'},
+      {type:'Namo Bharat (AC)',target:64,outturn:0,balance:64,pillClass:'pill-teal'},
+      {type:'LHB AC',target:296,outturn:0,balance:296,pillClass:'pill-teal'},
+      {type:'Amrit Bharat AC',target:126,outturn:0,balance:126,pillClass:'pill-teal'},
+      {type:'Bangladesh AC',target:56,outturn:0,balance:56,pillClass:'pill-teal'},
+      {type:'ACRA',target:26,outturn:0,balance:26,pillClass:'pill-amber'},
+      {type:'RDSO',target:4,outturn:0,balance:4,pillClass:'pill-amber'},
+      {type:'LHB NAC',target:938,outturn:6,balance:932,pillClass:'pill-navy'},
+      {type:'Amrit Bharat NAC',target:808,outturn:0,balance:808,pillClass:'pill-navy'},
+      {type:'Bangladesh NAC',target:84,outturn:0,balance:84,pillClass:'pill-teal'},
+      {type:'RA NAC',target:66,outturn:0,balance:66,pillClass:'pill-amber'},
+      {type:'Total',target:2986,outturn:11,balance:2975,pillClass:'pill-navy',isTotal:true}
+    ]
+  };
+}
+
+/* ─────────────────────────────────────────────
+   RENDER
+───────────────────────────────────────────── */
+function render(data) {
+  // Header date
+  document.getElementById('hdr-date').textContent = data.positionDate || '15 April 2026';
+
+  // KPIs
+  document.getElementById('kv-shells').textContent = data.mthShells;
+  document.getElementById('ks-shells').textContent = `Annual: ${data.annShells} | Avg/day: ${data.avgShells}`;
+  document.getElementById('kv-furn').textContent = data.mthFurn;
+  document.getElementById('ks-furn').textContent = `Annual: ${data.annFurn} | Avg/day: ${data.avgFurn}`;
+  document.getElementById('kv-desp').textContent = data.mthDesp;
+  document.getElementById('ks-desp').textContent = `Annual: ${data.annDesp} | Avg/day: ${data.avgDesp}`;
+  document.getElementById('kv-balance').textContent = data.balance.toLocaleString();
+  document.getElementById('ks-balance').textContent = `Target: ${data.target.toLocaleString()} | (${Math.round(data.target/16)} Rakes)`;
+  document.getElementById('kb-balance').textContent = `${data.outturn} Achieved`;
+
+  // Daily table
+  const dtbody = document.getElementById('daily-tbody');
+  dtbody.innerHTML = '';
+  data.dailyRows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.isTotal) tr.className = 'total-row';
+    tr.innerHTML = `<td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td>`;
+    dtbody.appendChild(tr);
   });
-  const mDesp  = daily.rows.reduce((s,r)=>s+(toN(r.Despatched)||0),0);
-  const yrDesp = 1961;
 
-  document.getElementById('k1').textContent = fmt(totalTarget  || 2550);
-  document.getElementById('k2').textContent = fmt(totalOutturn || 2005);
-  document.getElementById('k3').textContent = fmt(yrDesp);
-  document.getElementById('k3m').textContent = fmt(mDesp);
-  document.getElementById('k4').textContent = fmt(totalBalance || 545);
-  document.getElementById('k5').textContent = '41';
+  // Chart
+  const nonTotal = data.dailyRows.filter(r => !r.isTotal);
+  const labels = nonTotal.map(r => r.date.replace('.04.26','').replace('.04.27','') + ' Apr');
+  const shells = nonTotal.map(r => r.shell);
+  const furns = nonTotal.map(r => r.furn);
+  const desps = nonTotal.map(r => r.desp);
 
-  /* Month summary */
-  const mShell = daily.rows.reduce((s,r)=>s+(toN(r.Shell)||0),0);
-  const mFurn  = daily.rows.reduce((s,r)=>s+(toN(r.Furnishing)||0),0);
-  const mDispatch = daily.rows.reduce((s,r)=>s+(toN(r.Despatched)||0),0);
-  document.getElementById('ms1').textContent = fmt(mShell);
-  document.getElementById('ms2').textContent = fmt(mFurn);
-  document.getElementById('ms3').textContent = fmt(mDispatch);
-  document.getElementById('ms4').textContent = (mShell / daily.rows.length).toFixed(1);
-
-  /* Daily bar chart */
-  const dlabels = daily.rows.map(r => r.Date || r[daily.hdr[0]]);
-  C.daily = new Chart(document.getElementById('c-daily'), {
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('dailyChart'), {
     type: 'bar',
     data: {
-      labels: dlabels,
+      labels,
       datasets: [
-        { label:'Shell',      data: daily.rows.map(r=>toN(r.Shell)||0),      backgroundColor:'#2563EB', borderRadius:3, borderSkipped:false },
-        { label:'Furnishing', data: daily.rows.map(r=>toN(r.Furnishing)||0), backgroundColor:'#16A34A', borderRadius:3, borderSkipped:false },
-        { label:'Despatched', data: daily.rows.map(r=>toN(r.Despatched)||0), backgroundColor:'#D97706', borderRadius:3, borderSkipped:false },
+        { label: 'Shell', data: shells, backgroundColor: '#1a3a5c', borderRadius: 3 },
+        { label: 'Furnishing', data: furns, backgroundColor: '#c9a84c', borderRadius: 3 },
+        { label: 'Despatch', data: desps, backgroundColor: '#1d6e5a', borderRadius: 3 }
       ]
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false} },
-      scales:{
-        x:{ ...ax, ticks:{...ax.ticks, autoSkip:false, maxRotation:45} },
-        y:{ ...ax, beginAtZero:true, ticks:{...ax.ticks, callback:v=>Number.isInteger(v)?v:null} }
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { font: { size: 11 }, boxWidth: 12, color: '#4a5568' } },
+        tooltip: { callbacks: { title: v => 'Apr ' + v[0].label.split(' ')[0] } }
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 }, color: '#718096', autoSkip: false, maxRotation: 45 }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 }, color: '#718096' }, grid: { color: '#eef0f5' }, border: { display: false } }
       }
     }
   });
 
-  /* Horizontal bar — target vs outturn */
-  const slabels = summ.rows.map(r => r.Coach || r[summ.hdr[0]]);
-  C.type = new Chart(document.getElementById('c-type'), {
-    type: 'bar',
-    data: {
-      labels: slabels,
-      datasets: [
-        { label:'Target',  data: summ.rows.map(r=>toN(r['Target (Rake)'])||0), backgroundColor:'#C0D1F0', borderRadius:3, borderSkipped:false },
-        { label:'Outturn', data: summ.rows.map(r=>toN(r['Outturn'])||0),       backgroundColor:'#2563EB', borderRadius:3, borderSkipped:false },
-      ]
-    },
-    options: {
-      indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false} },
-      scales:{
-        x:{ ...ax, beginAtZero:true, ticks:{...ax.ticks} },
-        y:{ ...ax, ticks:{...ax.ticks} }
-      }
-    }
+  // Coach-wise table
+  const ctbody = document.getElementById('coach-tbody');
+  ctbody.innerHTML = '';
+  data.coachRows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.isTotal) tr.className = 'total-row';
+    tr.innerHTML = `<td>${r.type}</td><td>${r.isTotal ? r.target : `<span class="pill ${r.pillClass}">${r.target}</span>`}</td><td>${r.outturn}</td><td>${r.balance}</td>`;
+    ctbody.appendChild(tr);
   });
 
-  /* Table */
-  let tT=0,tO=0,tB=0;
-  const rows = summ.rows.map(r => {
-    const t  = toN(r['Target (Rake)'])||0;
-    const o  = toN(r['Outturn'])||0;
-    const b  = toN(r['Balanced'])||0;
-    const rk = getRakes(r['Target (Rake)']);
-    const p  = pct(o,t); const col = pctCol(p);
-    tT+=t; tO+=o; tB+=b;
-    return `<tr>
-      <td>${r.Coach||r[summ.hdr[0]]}</td>
-      <td class="r">${fmt(t)}</td>
-      <td class="r">${rk!==null?rk:'—'}</td>
-      <td class="r">${fmt(o)}</td>
-      <td class="r">${fmt(b)}</td>
-      <td class="r">
-        <div class="pct-wrap">
-          <div class="mini-bg"><div class="mini-fill" style="width:${p}%;background:${col}"></div></div>
-          <span style="color:${col};font-weight:500;min-width:30px;text-align:right">${p}%</span>
-        </div>
-      </td>
-    </tr>`;
-  });
-  const tp = pct(tO,tT); const tc = pctCol(tp);
-  rows.push(`<tr class="total">
-    <td>Total</td>
-    <td class="r">${fmt(tT)}</td>
-    <td class="r">159</td>
-    <td class="r">${fmt(tO)}</td>
-    <td class="r">${fmt(tB)}</td>
-    <td class="r">
-      <div class="pct-wrap">
-        <div class="mini-bg"><div class="mini-fill" style="width:${tp}%;background:${tc}"></div></div>
-        <span style="color:${tc};font-weight:600;min-width:30px;text-align:right">${tp}%</span>
+  // Progress bars — top 6 by target
+  const progressItems = data.coachRows.filter(r => !r.isTotal).sort((a, b) => b.target - a.target).slice(0, 6);
+  // Also add total
+  const totalRow = data.coachRows.find(r => r.isTotal);
+  const progColors = ['#0d2340','#c9a84c','#1d6e5a','#1a3a5c','#a32d2d','#633806','#0d2340'];
+  const pSection = document.getElementById('progress-section');
+  pSection.innerHTML = '';
+  progressItems.forEach((item, idx) => {
+    const pct = item.target > 0 ? Math.max(0.15, (item.outturn / item.target) * 100) : 0;
+    const div = document.createElement('div');
+    div.className = 'progress-item';
+    div.innerHTML = `
+      <div class="prog-header">
+        <span class="prog-label">${item.type} (${item.target.toLocaleString()} target)</span>
+        <span class="prog-val">${item.outturn} / ${item.target.toLocaleString()}</span>
       </div>
-    </td>
-  </tr>`);
-  document.getElementById('tbl-body').innerHTML = rows.join('');
+      <div class="prog-bar"><div class="prog-fill" data-pct="${pct}" style="background:${progColors[idx]};"></div></div>`;
+    pSection.appendChild(div);
+  });
+  if (totalRow) {
+    const pct = totalRow.target > 0 ? Math.max(0.15, (totalRow.outturn / totalRow.target) * 100) : 0;
+    const div = document.createElement('div');
+    div.className = 'progress-item';
+    div.innerHTML = `
+      <div class="prog-header">
+        <span class="prog-label">Total Outturn (${totalRow.target.toLocaleString()})</span>
+        <span class="prog-val">${totalRow.outturn} / ${totalRow.target.toLocaleString()}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" data-pct="${pct}" style="background:#0d2340;"></div></div>`;
+    pSection.appendChild(div);
+  }
+
+  // Animate progress bars after paint
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.prog-fill').forEach(el => {
+      setTimeout(() => { el.style.width = el.dataset.pct + '%'; }, 200);
+    });
+  });
+
+  // Yard & Backlog
+  document.getElementById('yard-val').textContent = data.yard;
+  document.getElementById('backlog-val').textContent = data.backlog;
+
+  // Averages
+  document.getElementById('avg-shell').textContent = data.avgShells;
+  document.getElementById('avg-furn').textContent = data.avgFurn;
+  document.getElementById('avg-desp').textContent = data.avgDesp;
+
+  // Fetch time
+  document.getElementById('fetch-time').textContent = new Date().toLocaleTimeString('en-IN');
 }
 
-/* ── load ── */
-async function loadData() {
-  document.getElementById('overlay').classList.remove('hide');
-  document.getElementById('err').style.display = 'none';
-  document.getElementById('refBtn').classList.add('loading');
+/* ─────────────────────────────────────────────
+   ANIMATE IN
+───────────────────────────────────────────── */
+function animateIn() {
+  const kpis = document.querySelectorAll('.kpi');
+  kpis.forEach((el, i) => setTimeout(() => el.classList.add('visible'), i * 80));
+  const cards = document.querySelectorAll('.card');
+  cards.forEach((el, i) => setTimeout(() => el.classList.add('visible'), 320 + i * 70));
+}
 
-  let daily, summ, fallback = false;
+/* ─────────────────────────────────────────────
+   MAIN LOAD
+───────────────────────────────────────────── */
+async function loadData(isRefresh = false) {
+  const overlay = document.getElementById('loading-overlay');
+  const dash = document.getElementById('main-dash');
+  const errBanner = document.getElementById('error-banner');
+  const btn = document.getElementById('refresh-btn');
+
+  if (isRefresh) {
+    btn.classList.add('spinning');
+    errBanner.style.display = 'none';
+  } else {
+    overlay.style.display = 'flex';
+    document.getElementById('loader-msg').textContent = 'Fetching live data from Google Sheets…';
+  }
+
+  let data;
+  let usedFallback = false;
+
   try {
-    const [t0, t1] = await Promise.all([fetchCSV(0), fetchCSV(1)]);
-    const d0 = parseCSV(t0), d1 = parseCSV(t1);
-    daily = d0.rows.length > 1 ? d0 : fbDaily();
-    summ  = d1.rows.length > 1 ? d1 : fbSummary();
-    if (d0.rows.length <= 1 && d1.rows.length <= 1) fallback = true;
-  } catch(e) {
-    daily = fbDaily(); summ = fbSummary(); fallback = true;
+    const csv = await fetchSheetData();
+    const rows = parseCSV(csv);
+
+    if (rows.length < 3) throw new Error('Sheet appears empty or inaccessible');
+
+    data = extractData(rows);
+
+    // Validate: if we got no daily rows or coach rows, fall back
+    if (data.dailyRows.length === 0 && data.coachRows.length === 0) {
+      throw new Error('Could not parse sheet structure. Using static data.');
+    }
+  } catch (err) {
+    console.warn('Sheet fetch/parse error:', err.message);
+    data = getFallbackData();
+    usedFallback = true;
+    document.getElementById('error-text').textContent =
+      `Note: Live data fetch encountered an issue (${err.message}). Displaying embedded static data. Make sure the sheet is publicly shared.`;
+    errBanner.style.display = 'flex';
   }
 
-  if (fallback) {
-    const el = document.getElementById('err');
-    el.innerHTML = '⚠ Sheet not publicly accessible — showing cached data. To enable live updates, share the sheet as <strong>"Anyone with the link → Viewer"</strong>.';
-    el.style.display = 'block';
+  render(data);
+
+  if (!isRefresh) {
+    dash.style.visibility = 'visible';
+    overlay.classList.add('fade-out');
+    setTimeout(() => { overlay.style.display = 'none'; }, 550);
+    animateIn();
+  } else {
+    btn.classList.remove('spinning');
+    // Re-animate KPIs
+    document.querySelectorAll('.kpi').forEach(el => {
+      el.classList.remove('visible');
+      setTimeout(() => el.classList.add('visible'), 50);
+    });
   }
-
-  render(daily, summ);
-
-  const now = new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
-  const src  = fallback ? 'Cached · ' : 'Live · ';
-  document.getElementById('ts').textContent = src + now;
-  document.getElementById('ft').textContent = src + 'Auto-refreshes every 5 min';
-
-  document.getElementById('overlay').classList.add('hide');
-  document.getElementById('refBtn').classList.remove('loading');
 }
 
 loadData();
-setInterval(loadData, 5 * 60 * 1000);
 </script>
 </body>
 </html>
