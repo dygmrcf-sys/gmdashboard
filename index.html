@@ -1,697 +1,302 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GM Production Outturn Position — RCF Kapurthala</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
 <style>
-  :root {
-    --navy:#0d2340; --navy2:#1a3a5c; --gold:#c9a84c; --gold-lt:#e8d49e;
-    --teal:#1d6e5a; --teal-lt:#e1f5ee; --slate:#4a5568; --border:#dde3ec;
-    --bg:#f6f8fb; --white:#ffffff; --red:#a32d2d; --green:#3b6d11;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);font-family:'Source Sans 3',sans-serif;color:#1a202c;}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#fsBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.12); border: 0.5px solid rgba(255,255,255,0.3);
+  border-radius: var(--border-radius-md); padding: 4px 10px;
+  color: rgba(255,255,255,0.85); font-size: 11px; cursor: pointer;
+  font-family: var(--font-sans); letter-spacing: 0.5px; transition: background 0.2s;
+}
+#fsBtn:hover { background: rgba(255,255,255,0.22); }
+.db { font-family: var(--font-sans); }
+.hdr {
+  background: #0d2340; border-radius: var(--border-radius-lg);
+  padding: 12px 20px; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hdr-l .org { font-size: 10px; letter-spacing: 2px; color: #e8d49e; text-transform: uppercase; }
+.hdr-l h1 { font-size: 17px; color: #fff; font-weight: 500; margin: 1px 0; }
+.hdr-l .sub { font-size: 11px; color: rgba(255,255,255,0.5); }
+.hdr-r { display: flex; align-items: center; gap: 14px; }
+.hdr-r .dblock { text-align: right; }
+.hdr-r .dlbl { font-size: 10px; color: #e8d49e; letter-spacing: 1.2px; text-transform: uppercase; }
+.hdr-r .dval { font-size: 15px; color: #fff; font-weight: 500; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 10px; }
+.kpi {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 10px 14px; border-left: 3px solid transparent;
+}
+.kpi.n { border-left-color: #0d2340; }
+.kpi.g { border-left-color: #c9a84c; }
+.kpi.t { border-left-color: #1d6e5a; }
+.kpi.r { border-left-color: #a32d2d; }
+.kpi-lbl { font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+.kpi-val { font-size: 26px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
+.kpi-sub { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
+.body { display: grid; grid-template-columns: 1.1fr 0.85fr 0.7fr; gap: 10px; }
+.card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg); padding: 12px 14px;
+}
+.card-ttl {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--color-text-secondary); font-weight: 500;
+  margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+th {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--color-text-secondary); font-weight: 500;
+  padding: 3px 5px; text-align: center;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+th:first-child { text-align: left; }
+td { padding: 4px 5px; border-bottom: 0.5px solid var(--color-border-tertiary); text-align: center; font-size: 11.5px; color: var(--color-text-primary); }
+td:first-child { text-align: left; font-weight: 500; font-size: 11px; }
+tr:last-child td { border-bottom: none; }
+.tot td { background: var(--color-background-secondary); font-weight: 500; }
+.chart-wrap { position: relative; width: 100%; height: 130px; margin-top: 8px; }
+.right-col { display: flex; flex-direction: column; gap: 10px; }
+.mbox { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+.mbox.amb { background: #fff8ee; }
+.mbox-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); }
+.mbox.amb .mbox-lbl { color: #633806; }
+.mbox-val { font-size: 28px; font-weight: 500; }
+.mbox.amb .mbox-val { color: #ba7517; }
+.mbox-sub { font-size: 10px; color: var(--color-text-secondary); margin-top: 1px; }
+.mbox.amb .mbox-sub { color: #633806; }
+.avg-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); margin-bottom: 6px; }
+.avg-row:last-child { margin-bottom: 0; }
+.avg-lbl { font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.8px; }
+.avg-val { font-size: 22px; font-weight: 500; }
+.prog-item { margin-bottom: 7px; }
+.prog-hdr { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; }
+.prog-lbl { color: var(--color-text-secondary); }
+.prog-v { font-weight: 500; color: var(--color-text-primary); }
+.prog-bar { height: 5px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.ft { margin-top: 10px; font-size: 10px; color: var(--color-text-secondary); border-top: 0.5px solid var(--color-border-tertiary); padding-top: 8px; display: flex; justify-content: space-between; }
 
-  /* ── Loading overlay ── */
-  #loading-overlay {
-    position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;
-    transition:opacity 0.5s ease;
-  }
-  #loading-overlay.fade-out{opacity:0;pointer-events:none;}
-  .loader-logo{font-family:'Playfair Display',serif;font-size:22px;color:#fff;margin-bottom:6px;letter-spacing:1px;}
-  .loader-sub{font-size:12px;color:var(--gold-lt);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
-  .loader-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.15);border-top-color:var(--gold);border-radius:50%;animation:spin 0.9s linear infinite;}
-  .loader-msg{margin-top:16px;font-size:12px;color:rgba(255,255,255,0.5);letter-spacing:1px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-
-  /* ── Error banner ── */
-  #error-banner{display:none;background:#fff3cd;border:1px solid #f0c060;border-radius:8px;padding:12px 18px;margin:16px 20px;font-size:13px;color:#7a5000;align-items:center;gap:10px;}
-  #error-banner svg{flex-shrink:0;}
-
-  .dash{max-width:1140px;margin:0 auto;padding:22px 20px 36px;}
-
-  /* ── Header ── */
-  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,#1e4f7a 100%);border-radius:12px;padding:24px 32px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-  .header-left .org{font-size:11px;letter-spacing:2.5px;color:var(--gold-lt);text-transform:uppercase;font-weight:500;margin-bottom:4px;}
-  .header-left h1{font-family:'Playfair Display',serif;font-size:26px;color:#fff;font-weight:600;line-height:1.2;margin-bottom:3px;}
-  .header-left .subtitle{font-size:13px;color:rgba(255,255,255,0.65);font-weight:300;}
-  .header-right{text-align:right;}
-  .header-right .date-label{font-size:11px;color:var(--gold-lt);letter-spacing:1.5px;text-transform:uppercase;font-weight:500;}
-  .header-right .date-val{font-size:22px;color:#fff;font-weight:500;font-family:'Playfair Display',serif;}
-  .header-right .as-of{font-size:11px;color:rgba(255,255,255,0.55);}
-  .header-right .refresh-btn{margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:5px 12px;color:rgba(255,255,255,0.8);font-size:11px;cursor:pointer;letter-spacing:0.5px;font-family:'Source Sans 3',sans-serif;transition:background 0.2s;}
-  .header-right .refresh-btn:hover{background:rgba(255,255,255,0.2);}
-  .header-right .refresh-btn svg{transition:transform 0.4s;}
-  .header-right .refresh-btn.spinning svg{animation:spin 0.9s linear infinite;}
-
-  .gold-bar{height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-lt),var(--gold));border-radius:2px;margin-bottom:20px;}
-
-  /* ── KPI row ── */
-  .kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px;}
-  .kpi{background:var(--white);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;opacity:0;transform:translateY(12px);transition:opacity 0.4s ease,transform 0.4s ease;}
-  .kpi.visible{opacity:1;transform:translateY(0);}
-  .kpi::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:10px 0 0 10px;}
-  .kpi.navy::before{background:var(--navy);}
-  .kpi.gold::before{background:var(--gold);}
-  .kpi.teal::before{background:var(--teal);}
-  .kpi.red::before{background:var(--red);}
-  .kpi-label{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:1.2px;font-weight:500;margin-bottom:6px;}
-  .kpi-val{font-size:32px;font-family:'Playfair Display',serif;font-weight:600;line-height:1;color:var(--navy);}
-  .kpi-sub{font-size:12px;color:var(--slate);margin-top:5px;}
-  .kpi-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:6px;}
-  .kpi-badge.green{background:#eaf3de;color:var(--green);}
-  .kpi-badge.amber{background:#faeeda;color:#633806;}
-
-  /* ── Mid row ── */
-  .mid-row{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:20px;}
-  .card{background:var(--white);border:0.5px solid var(--border);border-radius:10px;padding:18px 20px;opacity:0;transform:translateY(10px);transition:opacity 0.45s ease,transform 0.45s ease;}
-  .card.visible{opacity:1;transform:translateY(0);}
-  .card-title{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--slate);font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-  .card-title::after{content:'';flex:1;height:1px;background:var(--border);}
-
-  /* ── Tables ── */
-  .daily-table,.coach-table{width:100%;border-collapse:collapse;}
-  .daily-table{font-size:13px;}
-  .coach-table{font-size:12.5px;}
-  .daily-table thead th,.coach-table thead th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--slate);font-weight:600;padding:6px 8px;border-bottom:1.5px solid var(--border);text-align:center;}
-  .daily-table thead th:first-child,.coach-table thead th:first-child{text-align:left;}
-  .daily-table tbody td,.coach-table tbody td{padding:7px 8px;border-bottom:0.5px solid #eef0f5;text-align:center;color:#2d3748;}
-  .daily-table tbody td:first-child,.coach-table tbody td:first-child{text-align:left;font-weight:500;color:var(--navy);}
-  .daily-table tbody tr:last-child td,.coach-table tbody tr:last-child td{border-bottom:none;}
-  .daily-table tbody tr:hover td,.coach-table tbody tr:hover td{background:#f6f8fb;}
-  .total-row td{background:#f0f4ff!important;font-weight:600!important;color:var(--navy)!important;border-top:1.5px solid var(--border)!important;}
-
-  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
-  .pill-navy{background:#e8edf6;color:var(--navy);}
-  .pill-teal{background:var(--teal-lt);color:var(--teal);}
-  .pill-amber{background:#faeeda;color:#633806;}
-
-  /* ── Progress bars ── */
-  .progress-section{margin-bottom:0;}
-  .progress-item{margin-bottom:12px;}
-  .prog-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
-  .prog-label{font-size:12px;color:var(--slate);font-weight:500;}
-  .prog-val{font-size:12px;font-weight:600;color:var(--navy);}
-  .prog-bar{height:7px;background:#eef0f5;border-radius:4px;overflow:hidden;}
-  .prog-fill{height:100%;border-radius:4px;width:0;transition:width 1.2s cubic-bezier(0.25,0.46,0.45,0.94);}
-
-  /* ── Bottom row ── */
-  .bottom-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:20px;}
-  .metric-box{background:#f6f8fb;border-radius:8px;padding:16px;text-align:center;}
-  .metric-box.amber-box{background:#fff8ee;border-radius:8px;padding:16px;text-align:center;border:0.5px solid #f0d9a0;}
-  .metric-box .mbox-label{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:6px;}
-  .metric-box.amber-box .mbox-label{color:#633806;}
-  .metric-box:not(.amber-box) .mbox-label{color:var(--slate);}
-  .metric-box .mbox-val{font-size:42px;font-family:'Playfair Display',serif;font-weight:600;}
-  .metric-box:not(.amber-box) .mbox-val{color:var(--teal);}
-  .metric-box.amber-box .mbox-val{color:#ba7517;}
-  .metric-box .mbox-sub{font-size:12px;margin-top:2px;}
-  .metric-box:not(.amber-box) .mbox-sub{color:var(--slate);}
-  .metric-box.amber-box .mbox-sub{color:#633806;}
-  .avg-row-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f6f8fb;border-radius:8px;}
-  .avg-row-item .albl{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
-  .avg-row-item .asub{font-size:11px;color:#a0aec0;margin-top:2px;}
-  .avg-row-item .aval{font-size:28px;font-family:'Playfair Display',serif;font-weight:600;}
-
-  /* ── Chart ── */
-  .chart-wrap{position:relative;width:100%;height:180px;margin-top:14px;}
-
-  /* ── Footer ── */
-  .footer{border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
-  .footer-left,.footer-right{font-size:11px;color:#a0aec0;letter-spacing:0.5px;}
-
-  /* ── Skeleton pulse ── */
-  .skeleton{background:linear-gradient(90deg,#eef0f5 25%,#e2e5ed 50%,#eef0f5 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;display:inline-block;}
-  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-  @media(max-width:780px){
-    .kpi-row{grid-template-columns:repeat(2,1fr);}
-    .mid-row{grid-template-columns:1fr;}
-    .bottom-row{grid-template-columns:1fr;}
-  }
+#wrapper:fullscreen .db,
+#wrapper:-webkit-full-screen .db { padding: 16px; }
+#wrapper:fullscreen,
+#wrapper:-webkit-full-screen { background: var(--color-background-tertiary, #f6f8fb); overflow-y: auto; }
 </style>
-</head>
-<body>
 
-<!-- Loading overlay -->
-<div id="loading-overlay">
-  <div class="loader-logo">Rail Coach Factory · Kapurthala</div>
-  <div class="loader-sub">GM Production Dashboard</div>
-  <div class="loader-spinner"></div>
-  <div class="loader-msg" id="loader-msg">Fetching live data from Google Sheets…</div>
-</div>
+<h2 class="sr-only">GM Production Outturn Dashboard — Rail Coach Factory Kapurthala, position as of 15 April 2026</h2>
 
-<!-- Error banner -->
-<div id="error-banner">
-  <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#d08000" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="#d08000" stroke-width="2" stroke-linecap="round"/></svg>
-  <span id="error-text">Unable to load live data. Displaying last cached values.</span>
-</div>
+<div id="wrapper">
+<div class="db">
 
-<div class="dash" id="main-dash" style="visibility:hidden;">
-  <div class="header">
-    <div class="header-left">
+  <div class="hdr">
+    <div class="hdr-l">
       <div class="org">Rail Coach Factory · Kapurthala</div>
-      <h1>GM Production Outturn Position</h1>
-      <div class="subtitle">Year 2026–27 &nbsp;|&nbsp; Shell · Furnishing · Despatch Monitoring</div>
+      <h1>GM Production Outturn Position — 2026–27</h1>
+      <div class="sub">Shell · Furnishing · Despatch Monitoring</div>
     </div>
-    <div class="header-right">
-      <div class="date-label">Position as of</div>
-      <div class="date-val" id="hdr-date">—</div>
-      <div class="as-of" id="hdr-asof">April MTH &nbsp;|&nbsp; Annual Year Start</div>
-      <button class="refresh-btn" id="refresh-btn" onclick="loadData(true)">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        Refresh Data
+    <div class="hdr-r">
+      <div class="dblock">
+        <div class="dlbl">Position as of</div>
+        <div class="dval">15 April 2026</div>
+      </div>
+      <button id="fsBtn" onclick="toggleFS()">
+        <svg id="fsIco" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        Full screen
       </button>
     </div>
   </div>
-  <div class="gold-bar"></div>
 
-  <!-- KPIs -->
-  <div class="kpi-row">
-    <div class="kpi navy" id="kpi-shells">
-      <div class="kpi-label">Shells (MTH)</div>
-      <div class="kpi-val" id="kv-shells">—</div>
-      <div class="kpi-sub" id="ks-shells">Annual: — | Avg/day: —</div>
-      <span class="kpi-badge green">On Track</span>
+  <div class="kpis">
+    <div class="kpi n">
+      <div class="kpi-lbl">Shells (MTH)</div>
+      <div class="kpi-val">63</div>
+      <div class="kpi-sub">Annual: 63 &nbsp;·&nbsp; Avg/day: 4.5</div>
     </div>
-    <div class="kpi gold" id="kpi-furn">
-      <div class="kpi-label">Furnishing (MTH)</div>
-      <div class="kpi-val" id="kv-furn">—</div>
-      <div class="kpi-sub" id="ks-furn">Annual: — | Avg/day: —</div>
-      <span class="kpi-badge amber">Monitoring</span>
+    <div class="kpi g">
+      <div class="kpi-lbl">Furnishing (MTH)</div>
+      <div class="kpi-val">11</div>
+      <div class="kpi-sub">Annual: 11 &nbsp;·&nbsp; Avg/day: 0.9</div>
     </div>
-    <div class="kpi teal" id="kpi-desp">
-      <div class="kpi-label">Despatched (MTH)</div>
-      <div class="kpi-val" id="kv-desp">—</div>
-      <div class="kpi-sub" id="ks-desp">Annual: — | Avg/day: —</div>
-      <span class="kpi-badge green">Active</span>
+    <div class="kpi t">
+      <div class="kpi-lbl">Despatched (MTH)</div>
+      <div class="kpi-val">102</div>
+      <div class="kpi-sub">Annual: 102 &nbsp;·&nbsp; Avg/day: 7.4</div>
     </div>
-    <div class="kpi red" id="kpi-balance">
-      <div class="kpi-label">Balanced Coaches</div>
-      <div class="kpi-val" id="kv-balance">—</div>
-      <div class="kpi-sub" id="ks-balance">Target: — | (— Rakes)</div>
-      <span class="kpi-badge amber" id="kb-balance">— Achieved</span>
+    <div class="kpi r">
+      <div class="kpi-lbl">Balance coaches</div>
+      <div class="kpi-val">2,975</div>
+      <div class="kpi-sub">Target: 2,986 &nbsp;·&nbsp; 11 Achieved</div>
     </div>
   </div>
 
-  <!-- Mid row -->
-  <div class="mid-row">
-    <div class="card" id="card-daily">
-      <div class="card-title">Daily Production Log</div>
-      <table class="daily-table">
-        <thead><tr><th>Date</th><th>Shell</th><th>Furnishing</th><th>Despatched</th></tr></thead>
-        <tbody id="daily-tbody"></tbody>
-      </table>
-      <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
-    </div>
-    <div class="card" id="card-coachwise">
-      <div class="card-title">Coach-wise Position 2026–27</div>
-      <table class="coach-table">
-        <thead><tr><th>Coach Type</th><th>Target</th><th>Outturn</th><th>Balance</th></tr></thead>
-        <tbody id="coach-tbody"></tbody>
-      </table>
-    </div>
-  </div>
+  <div class="body">
 
-  <!-- Bottom row -->
-  <div class="bottom-row">
-    <div class="card" id="card-progress">
-      <div class="card-title">Annual Outturn Progress</div>
-      <div class="progress-section" id="progress-section"></div>
-    </div>
-    <div class="card" id="card-yard">
-      <div class="card-title">Yard &amp; Backlog Status</div>
-      <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px;">
-        <div class="metric-box">
-          <div class="mbox-label">Ready Coaches in Yard</div>
-          <div class="mbox-val" id="yard-val">—</div>
-          <div class="mbox-sub">Coaches awaiting despatch</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card">
+        <div class="card-ttl">Daily production log — April 2026</div>
+        <table>
+          <thead><tr><th>Date</th><th>Shell</th><th>Furn.</th><th>Desp.</th></tr></thead>
+          <tbody>
+            <tr><td>01 Apr</td><td>1</td><td>1</td><td>0</td></tr>
+            <tr><td>02 Apr</td><td>1</td><td>2</td><td>15</td></tr>
+            <tr><td>03 Apr</td><td>6</td><td>1</td><td>12</td></tr>
+            <tr><td>04 Apr</td><td>3</td><td>3</td><td>0</td></tr>
+            <tr><td>06 Apr</td><td>5</td><td>1</td><td>30</td></tr>
+            <tr><td>07 Apr</td><td>6</td><td>1</td><td>0</td></tr>
+            <tr><td>08 Apr</td><td>7</td><td>0</td><td>0</td></tr>
+            <tr><td>09 Apr</td><td>5</td><td>0</td><td>17</td></tr>
+            <tr><td>10 Apr</td><td>8</td><td>1</td><td>0</td></tr>
+            <tr><td>11 Apr</td><td>8</td><td>0</td><td>15</td></tr>
+            <tr><td>13 Apr</td><td>9</td><td>1</td><td>0</td></tr>
+            <tr><td>15 Apr</td><td>4</td><td>0</td><td>13</td></tr>
+            <tr class="tot"><td>Total</td><td>63</td><td>11</td><td>102</td></tr>
+          </tbody>
+        </table>
+        <div class="chart-wrap">
+          <canvas id="dc" role="img" aria-label="Daily production bar chart for April 2026 showing shell, furnishing, and despatch">Daily shell, furnishing, despatch production April 2026.</canvas>
         </div>
-        <div class="metric-box amber-box">
-          <div class="mbox-label">Backlog — Previous Year</div>
-          <div class="mbox-val" id="backlog-val">—</div>
-          <div class="mbox-sub">Coaches carried forward</div>
+        <div style="display:flex;gap:14px;margin-top:6px;">
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;background:#0d2340;display:inline-block;"></span>Shell</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;background:#c9a84c;display:inline-block;"></span>Furnishing</span>
+          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;background:#1d6e5a;display:inline-block;"></span>Despatch</span>
         </div>
       </div>
     </div>
-    <div class="card" id="card-avg">
-      <div class="card-title">MTH Average Performance</div>
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
-        <div class="avg-row-item">
-          <div><div class="albl">Shell — MTH Avg</div><div class="asub">Coaches / working day</div></div>
-          <div class="aval" style="color:var(--navy);" id="avg-shell">—</div>
+
+    <div class="card">
+      <div class="card-ttl">Coach-wise position 2026–27</div>
+      <table>
+        <thead><tr><th>Coach type</th><th>Target</th><th>Out.</th><th>Bal.</th></tr></thead>
+        <tbody>
+          <tr><td>MEMU</td><td>384</td><td>5</td><td>379</td></tr>
+          <tr><td>LHB NAC</td><td>938</td><td>6</td><td>932</td></tr>
+          <tr><td>Amrit Bharat NAC</td><td>808</td><td>0</td><td>808</td></tr>
+          <tr><td>Namo Bharat AC</td><td>64</td><td>0</td><td>64</td></tr>
+          <tr><td>LHB AC</td><td>296</td><td>0</td><td>296</td></tr>
+          <tr><td>Amrit Bharat AC</td><td>126</td><td>0</td><td>126</td></tr>
+          <tr><td>Bangladesh AC</td><td>56</td><td>0</td><td>56</td></tr>
+          <tr><td>Bangladesh NAC</td><td>84</td><td>0</td><td>84</td></tr>
+          <tr><td>Train Set VB</td><td>96</td><td>0</td><td>96</td></tr>
+          <tr><td>RA NAC</td><td>66</td><td>0</td><td>66</td></tr>
+          <tr><td>ACRA</td><td>26</td><td>0</td><td>26</td></tr>
+          <tr><td>HS Spart / SPIC</td><td>38</td><td>0</td><td>38</td></tr>
+          <tr><td>RDSO</td><td>4</td><td>0</td><td>4</td></tr>
+          <tr class="tot"><td>Total</td><td>2,986</td><td>11</td><td>2,975</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="right-col">
+      <div class="card">
+        <div class="card-ttl">Annual outturn progress</div>
+        <div id="progs"></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Yard &amp; backlog</div>
+        <div class="mbox" style="margin-bottom:8px;">
+          <div><div class="mbox-lbl">Ready in yard</div><div class="mbox-sub">Awaiting despatch</div></div>
+          <div class="mbox-val" style="color:#1d6e5a;">38</div>
         </div>
-        <div class="avg-row-item">
-          <div><div class="albl">Furnishing — MTH Avg</div><div class="asub">Coaches / working day</div></div>
-          <div class="aval" style="color:var(--gold);" id="avg-furn">—</div>
+        <div class="mbox amb">
+          <div><div class="mbox-lbl">Backlog — prev. year</div><div class="mbox-sub">Carried forward</div></div>
+          <div class="mbox-val">94</div>
         </div>
-        <div class="avg-row-item">
-          <div><div class="albl">Despatch — MTH Avg</div><div class="asub">Coaches / working day</div></div>
-          <div class="aval" style="color:var(--teal);" id="avg-desp">—</div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">MTH avg per working day</div>
+        <div class="avg-row">
+          <div class="avg-lbl">Shell</div>
+          <div class="avg-val" style="color:#0d2340;">4.5</div>
+        </div>
+        <div class="avg-row">
+          <div class="avg-lbl">Furnishing</div>
+          <div class="avg-val" style="color:#c9a84c;">0.9</div>
+        </div>
+        <div class="avg-row">
+          <div class="avg-lbl">Despatch</div>
+          <div class="avg-val" style="color:#1d6e5a;">7.4</div>
         </div>
       </div>
     </div>
+
   </div>
 
-  <div class="footer">
-    <div class="footer-left">Rail Coach Factory · Kapurthala &nbsp;|&nbsp; General Manager's Office &nbsp;|&nbsp; Confidential — For Internal Use Only</div>
-    <div class="footer-right" id="footer-source">Data Source: Google Sheets — 2026–27 &nbsp;|&nbsp; Last fetched: <span id="fetch-time">—</span></div>
+  <div class="ft">
+    <span>Rail Coach Factory · Kapurthala &nbsp;|&nbsp; General Manager's Office &nbsp;|&nbsp; For Internal Use Only</span>
+    <span>Data as of 15 April 2026</span>
   </div>
+
+</div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-/* ─────────────────────────────────────────────
-   CONFIG
-───────────────────────────────────────────── */
-const SHEET_ID = '1QwD05_J-IzMu9wnJECRH95CDIluOhzuz8Fqh2TqnKAE';
-const SHEET_NAME = '2026-27';
-// Public CSV export URL — works for publicly shared Google Sheets
-const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vRl_jE4aMJYmIC2xxHC2TABQshgcPffgqvXnvQdWS0mzPBxiqwi4BU1pTselF4eibEiVw0HDUpNEG6C/pub?gid=1620327917&single=true&output=csv`;
-
-let chartInstance = null;
-
-/* ─────────────────────────────────────────────
-   FETCH & PARSE
-───────────────────────────────────────────── */
-async function fetchSheetData() {
-  const res = await fetch(CSV_URL + '&t=' + Date.now()); // cache-bust
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return await res.text();
-}
-
-function parseCSV(text) {
-  // Minimal CSV parser handling quoted fields
-  const rows = [];
-  const lines = text.split('\n');
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const cols = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; }
-      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
-      else { cur += c; }
-    }
-    cols.push(cur.trim());
-    rows.push(cols);
-  }
-  return rows;
-}
-
-function clean(v) {
-  if (!v) return '';
-  return v.replace(/^["']|["']$/g, '').trim();
-}
-
-function num(v) {
-  const n = parseFloat(clean(v).replace(/,/g, ''));
-  return isNaN(n) ? 0 : n;
-}
-
-/* ─────────────────────────────────────────────
-   DATA EXTRACTION
-   The sheet layout (from the HTML source data):
-   We parse named sections using header keywords.
-───────────────────────────────────────────── */
-function extractData(rows) {
-  /* Build a map of row-index by first-cell keyword for section detection */
-  const cleaned = rows.map(r => r.map(clean));
-
-  const data = {
-    positionDate: '',
-    mthShells: 0, mthFurn: 0, mthDesp: 0,
-    annShells: 0, annFurn: 0, annDesp: 0,
-    avgShells: 0, avgFurn: 0, avgDesp: 0,
-    target: 0, outturn: 0, balance: 0,
-    yard: 0, backlog: 0,
-    dailyRows: [],    // [{date,shell,furn,desp}]
-    coachRows: [],    // [{type,target,outturn,balance,pillClass}]
-  };
-
-  /* ── Scan all rows ── */
-  for (let i = 0; i < cleaned.length; i++) {
-    const row = cleaned[i];
-    const r0 = row[0] ? row[0].toLowerCase() : '';
-
-    // Position date
-    if (r0.includes('position') && r0.includes('as of')) {
-      data.positionDate = row[1] || row[0];
-    }
-
-    // KPI summary block: "shells (mth)" | "furnishing (mth)" | "despatched (mth)"
-    if (r0.includes('shells') && r0.includes('mth')) {
-      data.mthShells = num(row[1]); data.annShells = num(row[2]); data.avgShells = num(row[3]);
-    }
-    if ((r0.includes('furnish') && r0.includes('mth'))) {
-      data.mthFurn = num(row[1]); data.annFurn = num(row[2]); data.avgFurn = num(row[3]);
-    }
-    if (r0.includes('despatch') && r0.includes('mth')) {
-      data.mthDesp = num(row[1]); data.annDesp = num(row[2]); data.avgDesp = num(row[3]);
-    }
-
-    // Balanced coaches
-    if (r0.includes('balanced') || r0.includes('balance coaches')) {
-      data.balance = num(row[1]); data.target = num(row[2]); 
-    }
-
-    // Yard / Backlog
-    if (r0.includes('yard') || r0.includes('ready coaches')) {
-      data.yard = num(row[1]);
-    }
-    if (r0.includes('backlog') || r0.includes('previous year')) {
-      data.backlog = num(row[1]);
-    }
-
-    // Daily log section header: look for "Date" / "Shell" / "Furnishing" in same row
-    const hasDate = row.some(c => c.toLowerCase() === 'date');
-    const hasShell = row.some(c => c.toLowerCase().includes('shell'));
-    const hasFurn = row.some(c => c.toLowerCase().includes('furnish'));
-    const hasDesp = row.some(c => c.toLowerCase().includes('despatch'));
-
-    if (hasDate && hasShell && hasFurn && hasDesp) {
-      // Find column indices
-      const ci = {
-        date: row.findIndex(c => c.toLowerCase() === 'date'),
-        shell: row.findIndex(c => c.toLowerCase().includes('shell')),
-        furn: row.findIndex(c => c.toLowerCase().includes('furnish')),
-        desp: row.findIndex(c => c.toLowerCase().includes('despatch')),
-      };
-      // Collect daily rows until blank or "total"
-      for (let j = i + 1; j < cleaned.length; j++) {
-        const dr = cleaned[j];
-        const d0 = dr[ci.date] || '';
-        if (!d0) break;
-        if (d0.toLowerCase().includes('total')) {
-          // Total row — store as last
-          data.dailyRows.push({ date: 'Month / Year Total', shell: num(dr[ci.shell]), furn: num(dr[ci.furn]), desp: num(dr[ci.desp]), isTotal: true });
-          break;
-        }
-        data.dailyRows.push({ date: d0, shell: num(dr[ci.shell]), furn: num(dr[ci.furn]), desp: num(dr[ci.desp]), isTotal: false });
-      }
-    }
-
-    // Coach-wise section header: "coach type" / "type"
-    const hasType = row.some(c => /coach.?type|^type$/i.test(c));
-    const hasTarget = row.some(c => /target/i.test(c));
-    const hasOutturn = row.some(c => /outturn/i.test(c));
-
-    if (hasType && hasTarget && hasOutturn) {
-      const ci = {
-        type: row.findIndex(c => /coach.?type|^type$/i.test(c)),
-        target: row.findIndex(c => /target/i.test(c)),
-        outturn: row.findIndex(c => /outturn/i.test(c)),
-        balance: row.findIndex(c => /balance/i.test(c)),
-      };
-      for (let j = i + 1; j < cleaned.length; j++) {
-        const cr = cleaned[j];
-        const t = cr[ci.type] || '';
-        if (!t) break;
-        const isTotal = t.toLowerCase().includes('total');
-        const tgt = num(cr[ci.target]);
-        const out = num(cr[ci.outturn]);
-        const bal = ci.balance >= 0 ? num(cr[ci.balance]) : (tgt - out);
-        let pillClass = 'pill-navy';
-        if (/ac|namo|amrit.*ac|bangladesh.*ac|acra/i.test(t)) pillClass = 'pill-teal';
-        if (/rdso|ra |acra/i.test(t)) pillClass = 'pill-amber';
-        data.coachRows.push({ type: t, target: tgt, outturn: out, balance: bal, pillClass, isTotal });
-      }
-    }
-  }
-
-  /* ── Fallback: derive totals from daily rows if KPI fields not directly found ── */
-  const nonTotal = data.dailyRows.filter(r => !r.isTotal);
-  if (!data.mthShells && nonTotal.length) data.mthShells = nonTotal.reduce((s, r) => s + r.shell, 0);
-  if (!data.mthFurn && nonTotal.length) data.mthFurn = nonTotal.reduce((s, r) => s + r.furn, 0);
-  if (!data.mthDesp && nonTotal.length) data.mthDesp = nonTotal.reduce((s, r) => s + r.desp, 0);
-
-  // Use total row values if found
-  const totalRow = data.dailyRows.find(r => r.isTotal);
-  if (totalRow) {
-    if (!data.mthShells) data.mthShells = totalRow.shell;
-    if (!data.mthFurn) data.mthFurn = totalRow.furn;
-    if (!data.mthDesp) data.mthDesp = totalRow.desp;
-    data.annShells = data.annShells || totalRow.shell;
-    data.annFurn = data.annFurn || totalRow.furn;
-    data.annDesp = data.annDesp || totalRow.desp;
-  }
-
-  // Derive avg from non-total working days
-  const wdays = nonTotal.length || 1;
-  if (!data.avgShells) data.avgShells = +(data.mthShells / wdays).toFixed(1);
-  if (!data.avgFurn) data.avgFurn = +(data.mthFurn / wdays).toFixed(1);
-  if (!data.avgDesp) data.avgDesp = +(data.mthDesp / wdays).toFixed(1);
-
-  // Derive coach totals from coach rows
-  if (!data.target && data.coachRows.length) {
-    const tot = data.coachRows.find(r => r.isTotal);
-    if (tot) { data.target = tot.target; data.outturn = tot.outturn; data.balance = tot.balance; }
-    else {
-      const all = data.coachRows.filter(r => !r.isTotal);
-      data.target = all.reduce((s, r) => s + r.target, 0);
-      data.outturn = all.reduce((s, r) => s + r.outturn, 0);
-      data.balance = data.target - data.outturn;
-    }
-  }
-
-  return data;
-}
-
-/* ─────────────────────────────────────────────
-   FALLBACK STATIC DATA (matches HTML source)
-───────────────────────────────────────────── */
-function getFallbackData() {
-  return {
-    positionDate: '15 April 2026',
-    mthShells: 63, mthFurn: 11, mthDesp: 102,
-    annShells: 63, annFurn: 11, annDesp: 102,
-    avgShells: 4.5, avgFurn: 0.9, avgDesp: 7.4,
-    target: 2986, outturn: 11, balance: 2975,
-    yard: 38, backlog: 94,
-    dailyRows: [
-      {date:'01.04.26',shell:1,furn:1,desp:0},{date:'02.04.26',shell:1,furn:2,desp:15},
-      {date:'03.04.26',shell:6,furn:1,desp:12},{date:'04.04.26',shell:3,furn:3,desp:0},
-      {date:'06.04.26',shell:5,furn:1,desp:30},{date:'07.04.26',shell:6,furn:1,desp:0},
-      {date:'08.04.26',shell:7,furn:0,desp:0},{date:'09.04.26',shell:5,furn:0,desp:17},
-      {date:'10.04.26',shell:8,furn:1,desp:0},{date:'11.04.26',shell:8,furn:0,desp:15},
-      {date:'13.04.26',shell:9,furn:1,desp:0},{date:'15.04.26',shell:4,furn:0,desp:13},
-      {date:'Month / Year Total',shell:63,furn:11,desp:102,isTotal:true}
-    ],
-    coachRows: [
-      {type:'MEMU',target:384,outturn:5,balance:379,pillClass:'pill-navy'},
-      {type:'HS Spart',target:32,outturn:0,balance:32,pillClass:'pill-navy'},
-      {type:'SPIC',target:6,outturn:0,balance:6,pillClass:'pill-navy'},
-      {type:'Train Set VB',target:96,outturn:0,balance:96,pillClass:'pill-navy'},
-      {type:'Namo Bharat (AC)',target:64,outturn:0,balance:64,pillClass:'pill-teal'},
-      {type:'LHB AC',target:296,outturn:0,balance:296,pillClass:'pill-teal'},
-      {type:'Amrit Bharat AC',target:126,outturn:0,balance:126,pillClass:'pill-teal'},
-      {type:'Bangladesh AC',target:56,outturn:0,balance:56,pillClass:'pill-teal'},
-      {type:'ACRA',target:26,outturn:0,balance:26,pillClass:'pill-amber'},
-      {type:'RDSO',target:4,outturn:0,balance:4,pillClass:'pill-amber'},
-      {type:'LHB NAC',target:938,outturn:6,balance:932,pillClass:'pill-navy'},
-      {type:'Amrit Bharat NAC',target:808,outturn:0,balance:808,pillClass:'pill-navy'},
-      {type:'Bangladesh NAC',target:84,outturn:0,balance:84,pillClass:'pill-teal'},
-      {type:'RA NAC',target:66,outturn:0,balance:66,pillClass:'pill-amber'},
-      {type:'Total',target:2986,outturn:11,balance:2975,pillClass:'pill-navy',isTotal:true}
+new Chart(document.getElementById('dc'), {
+  type: 'bar',
+  data: {
+    labels: ['01','02','03','04','06','07','08','09','10','11','13','15'],
+    datasets: [
+      { label: 'Shell',      data: [1,1,6,3,5,6,7,5,8,8,9,4], backgroundColor: '#0d2340', borderRadius: 2 },
+      { label: 'Furnishing', data: [1,2,1,3,1,1,0,0,1,0,1,0], backgroundColor: '#c9a84c', borderRadius: 2 },
+      { label: 'Despatch',   data: [0,15,12,0,30,0,0,17,0,15,0,13], backgroundColor: '#1d6e5a', borderRadius: 2 }
     ]
-  };
-}
-
-/* ─────────────────────────────────────────────
-   RENDER
-───────────────────────────────────────────── */
-function render(data) {
-  // Header date
-  document.getElementById('hdr-date').textContent = data.positionDate || '15 April 2026';
-
-  // KPIs
-  document.getElementById('kv-shells').textContent = data.mthShells;
-  document.getElementById('ks-shells').textContent = `Annual: ${data.annShells} | Avg/day: ${data.avgShells}`;
-  document.getElementById('kv-furn').textContent = data.mthFurn;
-  document.getElementById('ks-furn').textContent = `Annual: ${data.annFurn} | Avg/day: ${data.avgFurn}`;
-  document.getElementById('kv-desp').textContent = data.mthDesp;
-  document.getElementById('ks-desp').textContent = `Annual: ${data.annDesp} | Avg/day: ${data.avgDesp}`;
-  document.getElementById('kv-balance').textContent = data.balance.toLocaleString();
-  document.getElementById('ks-balance').textContent = `Target: ${data.target.toLocaleString()} | (${Math.round(data.target/16)} Rakes)`;
-  document.getElementById('kb-balance').textContent = `${data.outturn} Achieved`;
-
-  // Daily table
-  const dtbody = document.getElementById('daily-tbody');
-  dtbody.innerHTML = '';
-  data.dailyRows.forEach(r => {
-    const tr = document.createElement('tr');
-    if (r.isTotal) tr.className = 'total-row';
-    tr.innerHTML = `<td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td>`;
-    dtbody.appendChild(tr);
-  });
-
-  // Chart
-  const nonTotal = data.dailyRows.filter(r => !r.isTotal);
-  const labels = nonTotal.map(r => r.date.replace('.04.26','').replace('.04.27','') + ' Apr');
-  const shells = nonTotal.map(r => r.shell);
-  const furns = nonTotal.map(r => r.furn);
-  const desps = nonTotal.map(r => r.desp);
-
-  if (chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(document.getElementById('dailyChart'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Shell', data: shells, backgroundColor: '#1a3a5c', borderRadius: 3 },
-        { label: 'Furnishing', data: furns, backgroundColor: '#c9a84c', borderRadius: 3 },
-        { label: 'Despatch', data: desps, backgroundColor: '#1d6e5a', borderRadius: 3 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, labels: { font: { size: 11 }, boxWidth: 12, color: '#4a5568' } },
-        tooltip: { callbacks: { title: v => 'Apr ' + v[0].label.split(' ')[0] } }
-      },
-      scales: {
-        x: { ticks: { font: { size: 10 }, color: '#718096', autoSkip: false, maxRotation: 45 }, grid: { display: false } },
-        y: { ticks: { font: { size: 10 }, color: '#718096' }, grid: { color: '#eef0f5' }, border: { display: false } }
-      }
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: {} },
+    scales: {
+      x: { ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: false }, grid: { display: false } },
+      y: { ticks: { font: { size: 9 } }, grid: { color: '#eef0f5' }, border: { display: false } }
     }
-  });
-
-  // Coach-wise table
-  const ctbody = document.getElementById('coach-tbody');
-  ctbody.innerHTML = '';
-  data.coachRows.forEach(r => {
-    const tr = document.createElement('tr');
-    if (r.isTotal) tr.className = 'total-row';
-    tr.innerHTML = `<td>${r.type}</td><td>${r.isTotal ? r.target : `<span class="pill ${r.pillClass}">${r.target}</span>`}</td><td>${r.outturn}</td><td>${r.balance}</td>`;
-    ctbody.appendChild(tr);
-  });
-
-  // Progress bars — top 6 by target
-  const progressItems = data.coachRows.filter(r => !r.isTotal).sort((a, b) => b.target - a.target).slice(0, 6);
-  // Also add total
-  const totalRow = data.coachRows.find(r => r.isTotal);
-  const progColors = ['#0d2340','#c9a84c','#1d6e5a','#1a3a5c','#a32d2d','#633806','#0d2340'];
-  const pSection = document.getElementById('progress-section');
-  pSection.innerHTML = '';
-  progressItems.forEach((item, idx) => {
-    const pct = item.target > 0 ? Math.max(0.15, (item.outturn / item.target) * 100) : 0;
-    const div = document.createElement('div');
-    div.className = 'progress-item';
-    div.innerHTML = `
-      <div class="prog-header">
-        <span class="prog-label">${item.type} (${item.target.toLocaleString()} target)</span>
-        <span class="prog-val">${item.outturn} / ${item.target.toLocaleString()}</span>
-      </div>
-      <div class="prog-bar"><div class="prog-fill" data-pct="${pct}" style="background:${progColors[idx]};"></div></div>`;
-    pSection.appendChild(div);
-  });
-  if (totalRow) {
-    const pct = totalRow.target > 0 ? Math.max(0.15, (totalRow.outturn / totalRow.target) * 100) : 0;
-    const div = document.createElement('div');
-    div.className = 'progress-item';
-    div.innerHTML = `
-      <div class="prog-header">
-        <span class="prog-label">Total Outturn (${totalRow.target.toLocaleString()})</span>
-        <span class="prog-val">${totalRow.outturn} / ${totalRow.target.toLocaleString()}</span>
-      </div>
-      <div class="prog-bar"><div class="prog-fill" data-pct="${pct}" style="background:#0d2340;"></div></div>`;
-    pSection.appendChild(div);
   }
+});
 
-  // Animate progress bars after paint
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.prog-fill').forEach(el => {
-      setTimeout(() => { el.style.width = el.dataset.pct + '%'; }, 200);
-    });
+const progData = [
+  { label: 'LHB NAC',          target: 938,  out: 6,  color: '#0d2340' },
+  { label: 'Amrit Bharat NAC', target: 808,  out: 0,  color: '#1a3a5c' },
+  { label: 'MEMU',             target: 384,  out: 5,  color: '#c9a84c' },
+  { label: 'LHB AC',           target: 296,  out: 0,  color: '#1d6e5a' },
+  { label: 'Amrit Bharat AC',  target: 126,  out: 0,  color: '#a32d2d' },
+  { label: 'Total (2,986)',     target: 2986, out: 11, color: '#0d2340' },
+];
+const pc = document.getElementById('progs');
+progData.forEach(p => {
+  const pct = Math.max(0.3, (p.out / p.target) * 100).toFixed(2);
+  pc.innerHTML += `<div class="prog-item">
+    <div class="prog-hdr"><span class="prog-lbl">${p.label}</span><span class="prog-v">${p.out}/${p.target.toLocaleString()}</span></div>
+    <div class="prog-bar"><div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div></div>
+  </div>`;
+});
+requestAnimationFrame(() => {
+  document.querySelectorAll('.prog-fill').forEach(el => {
+    setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 300);
   });
+});
 
-  // Yard & Backlog
-  document.getElementById('yard-val').textContent = data.yard;
-  document.getElementById('backlog-val').textContent = data.backlog;
-
-  // Averages
-  document.getElementById('avg-shell').textContent = data.avgShells;
-  document.getElementById('avg-furn').textContent = data.avgFurn;
-  document.getElementById('avg-desp').textContent = data.avgDesp;
-
-  // Fetch time
-  document.getElementById('fetch-time').textContent = new Date().toLocaleTimeString('en-IN');
-}
-
-/* ─────────────────────────────────────────────
-   ANIMATE IN
-───────────────────────────────────────────── */
-function animateIn() {
-  const kpis = document.querySelectorAll('.kpi');
-  kpis.forEach((el, i) => setTimeout(() => el.classList.add('visible'), i * 80));
-  const cards = document.querySelectorAll('.card');
-  cards.forEach((el, i) => setTimeout(() => el.classList.add('visible'), 320 + i * 70));
-}
-
-/* ─────────────────────────────────────────────
-   MAIN LOAD
-───────────────────────────────────────────── */
-async function loadData(isRefresh = false) {
-  const overlay = document.getElementById('loading-overlay');
-  const dash = document.getElementById('main-dash');
-  const errBanner = document.getElementById('error-banner');
-  const btn = document.getElementById('refresh-btn');
-
-  if (isRefresh) {
-    btn.classList.add('spinning');
-    errBanner.style.display = 'none';
+function toggleFS() {
+  const w = document.getElementById('wrapper');
+  const btn = document.getElementById('fsBtn');
+  const ico = document.getElementById('fsIco');
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    const req = w.requestFullscreen || w.webkitRequestFullscreen;
+    if (req) req.call(w);
   } else {
-    overlay.style.display = 'flex';
-    document.getElementById('loader-msg').textContent = 'Fetching live data from Google Sheets…';
-  }
-
-  let data;
-  let usedFallback = false;
-
-  try {
-    const csv = await fetchSheetData();
-    const rows = parseCSV(csv);
-
-    if (rows.length < 3) throw new Error('Sheet appears empty or inaccessible');
-
-    data = extractData(rows);
-
-    // Validate: if we got no daily rows or coach rows, fall back
-    if (data.dailyRows.length === 0 && data.coachRows.length === 0) {
-      throw new Error('Could not parse sheet structure. Using static data.');
-    }
-  } catch (err) {
-    console.warn('Sheet fetch/parse error:', err.message);
-    data = getFallbackData();
-    usedFallback = true;
-    document.getElementById('error-text').textContent =
-      `Note: Live data fetch encountered an issue (${err.message}). Displaying embedded static data. Make sure the sheet is publicly shared.`;
-    errBanner.style.display = 'flex';
-  }
-
-  render(data);
-
-  if (!isRefresh) {
-    dash.style.visibility = 'visible';
-    overlay.classList.add('fade-out');
-    setTimeout(() => { overlay.style.display = 'none'; }, 550);
-    animateIn();
-  } else {
-    btn.classList.remove('spinning');
-    // Re-animate KPIs
-    document.querySelectorAll('.kpi').forEach(el => {
-      el.classList.remove('visible');
-      setTimeout(() => el.classList.add('visible'), 50);
-    });
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    if (ex) ex.call(document);
   }
 }
-
-loadData();
+document.addEventListener('fullscreenchange', updateBtn);
+document.addEventListener('webkitfullscreenchange', updateBtn);
+function updateBtn() {
+  const inFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  const btn = document.getElementById('fsBtn');
+  btn.innerHTML = inFS
+    ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg> Exit full screen`
+    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Full screen`;
+}
 </script>
-</body>
-</html>
