@@ -184,12 +184,25 @@ tbody tr:hover td { background: #f6f8fb; }
 
 /* ── FULLSCREEN: off-white background ── */
 #wrapper:fullscreen,
-#wrapper:-webkit-full-screen {
-  background: #f9f7f4;
+#wrapper:-webkit-full-screen,
+#wrapper:-moz-full-screen,
+#wrapper:-ms-fullscreen {
+  background: #f9f7f4 !important;
   overflow-y: auto;
 }
 #wrapper:fullscreen .db,
-#wrapper:-webkit-full-screen .db { padding: 16px; }
+#wrapper:-webkit-full-screen .db,
+#wrapper:-moz-full-screen .db,
+#wrapper:-ms-fullscreen .db {
+  padding: 16px;
+  background: #f9f7f4 !important;
+}
+
+/* Force body background in fullscreen too */
+:-webkit-full-screen { background: #f9f7f4 !important; }
+:-moz-full-screen     { background: #f9f7f4 !important; }
+:-ms-fullscreen       { background: #f9f7f4 !important; }
+:fullscreen           { background: #f9f7f4 !important; }
 </style>
 </head>
 <body>
@@ -355,10 +368,11 @@ function parseCSV(text) {
   return rows;
 }
 
-// ─── SAFE NUMBER ──────────────────────────────────────────────────────────────
+// ─── SAFE NUMBER ─────────────────────────────────────────────────────────────
+// Strips bracketed annotations like "(24)" or "()" and parses the leading number
 function n(v) {
   if (v === undefined || v === null) return 0;
-  const clean = String(v).replace(/\(.*?\)/g, '').replace(/,/g, '').trim();
+  const clean = String(v).replace(/\s*\(.*?\)/g, '').replace(/,/g, '').trim();
   const x = parseFloat(clean);
   return isNaN(x) ? 0 : x;
 }
@@ -390,111 +404,206 @@ function startClock(baseLabel) {
   clockRef = setInterval(tick, 1000);
 }
 
-// ─── LAYOUT-AWARE RENDER ──────────────────────────────────────────────────────
+// ─── MAIN RENDER ─────────────────────────────────────────────────────────────
+/*
+  Sheet layout (as seen in the attached screenshot):
+  ─────────────────────────────────────────────────────────────────────────────
+  Col index (0-based after CSV parse):
+    A=0  B=1      C=2           D=3          E=4(empty)
+    F=5  G=6      H=7           I=8          J=9(empty)
+    K=10 L=11
+
+  Row 0  (row 1 in sheet): Title "GM Outturn Position April 2026"  |  Coach summary title  |  K="Number of Ready Coaches in Yard"  L="Current Backlog of last year"
+  Row 1  (row 2): Headers: Date | Shell | Furnishing | Despatched  |  | Coach | Target(Rake) | Outturn | Balanced  | | <yard value> | <backlog value>
+  Rows 2-N (rows 3+): daily data rows  |  coach rows
+  ...
+  Second-to-last rows: "Month Total" | vals   and  "Year Total" | vals
+  Last data row: "AVG. Curr MTH/YR" | avg vals
+*/
 function render(rows) {
   const daily   = [];
   const coaches = [];
+
   let mthShell = 0, mthFurn = 0, mthDesp = 0;
   let yrShell  = 0, yrFurn  = 0, yrDesp  = 0;
   let avgShell = '', avgFurn = '', avgDesp = '';
   let yardReady = 0, backlog = 0;
   let posDate = '';
 
+  // ── Step 1: locate header row (has "Date" in col 0 or col A) ──────────────
+  let hdrRowIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const c0 = (rows[i][0] || '').trim().toUpperCase();
+    const c1 = (rows[i][1] || '').trim().toUpperCase();
+    if (c0 === 'DATE' || c1 === 'DATE') { hdrRowIdx = i; break; }
+    // Also accept if row[0] contains "GM Outturn" — that is row 0 (title), skip
+    // Row with "Date","Shell","Furnishing","Despatched" is what we want
+  }
+
+  // ── Step 2: derive column indices from header row ─────────────────────────
   let dateCol=0, shellCol=1, furnCol=2, despCol=3;
   let coachCol=5, targetCol=6, outCol=7, balCol=8;
-  let headerFound = false;
+  let yardCol=10, backlogCol=11; // K and L
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const r0 = (row[0]||'').trim().toUpperCase();
-
-    if (!headerFound && (r0 === 'DATE' || r0.includes('DATE'))) {
-      for (let c = 0; c < row.length; c++) {
-        const h = (row[c]||'').trim().toUpperCase();
-        if (h === 'DATE') dateCol = c;
-        else if (h === 'SHELL') shellCol = c;
-        else if (h.includes('FURNISH')) furnCol = c;
-        else if (h.includes('DESPATCH') || h.includes('DISPATCH')) despCol = c;
-        else if (h === 'COACH') coachCol = c;
-        else if (h.includes('TARGET')) targetCol = c;
-        else if (h.includes('OUTTURN') || h === 'OUT.') outCol = c;
-        else if (h.includes('BALANCE') || h.includes('BAL')) balCol = c;
-      }
-      headerFound = true;
-      for (let c = 0; c < row.length; c++) {
-        const cell = (row[c]||'').trim();
-        if (cell.toUpperCase().includes('APRIL') || cell.toUpperCase().includes('POSITION')) {
-          posDate = cell;
-        }
-      }
-      continue;
+  if (hdrRowIdx >= 0) {
+    const hdr = rows[hdrRowIdx];
+    for (let c = 0; c < hdr.length; c++) {
+      const h = (hdr[c] || '').trim().toUpperCase();
+      if (h === 'DATE')                                     dateCol    = c;
+      else if (h === 'SHELL')                               shellCol   = c;
+      else if (h.includes('FURNISH'))                       furnCol    = c;
+      else if (h.includes('DESPATCH') || h.includes('DISPATCH')) despCol = c;
+      else if (h === 'COACH')                               coachCol   = c;
+      else if (h.includes('TARGET'))                        targetCol  = c;
+      else if (h.includes('OUTTURN') || h === 'OUT.')       outCol     = c;
+      else if (h.includes('BALANCE') || h === 'BALANCED' || h.includes('BAL')) balCol = c;
     }
 
-    if (headerFound) {
-      const c0 = (row[dateCol]||'').trim();
-      const c0up = c0.toUpperCase();
+    // ── Step 3: extract yard & backlog from ROW ABOVE headers (row 1 in sheet = index hdrRowIdx-1)
+    //    OR from the same header row's K/L columns,
+    //    OR from a dedicated label row. Check multiple strategies:
 
-      if (c0 && /\d{1,2}[./]\d{1,2}[./]\d{2,4}/.test(c0)) {
-        daily.push({ date: c0, shell: n(row[shellCol]), furn: n(row[furnCol]), desp: n(row[despCol]) });
-      }
-      if (c0up.includes('MONTH') || c0up === 'MONTH TOTAL') {
-        mthShell = n(row[shellCol]); mthFurn = n(row[furnCol]); mthDesp = n(row[despCol]);
-      }
-      if (c0up.includes('YEAR') || c0up === 'YEAR TOTAL') {
-        yrShell = n(row[shellCol]); yrFurn = n(row[furnCol]); yrDesp = n(row[despCol]);
-      }
-      if (c0up.includes('AVG')) {
-        const parseAvg = v => { const s = String(v||'').trim(); const m = s.match(/([\d.]+)/); return m ? m[1] : s; };
-        avgShell = parseAvg(row[shellCol]); avgFurn = parseAvg(row[furnCol]); avgDesp = parseAvg(row[despCol]);
-      }
+    // Strategy A: row index hdrRowIdx has K/L values directly (yard in col 10, backlog in col 11)
+    const hdrYard    = n(rows[hdrRowIdx][yardCol]);
+    const hdrBacklog = n(rows[hdrRowIdx][backlogCol]);
+    if (hdrYard > 0)    yardReady = hdrYard;
+    if (hdrBacklog > 0) backlog   = hdrBacklog;
 
-      const coachName = (row[coachCol]||'').trim();
-      const coachUp   = coachName.toUpperCase();
-      
-      // MODIFIED: Read specific Yard and Backlog values from the "next entry" after the header match
-      if (coachUp.includes('NUMBER OF READY COACHES IN YARD')) {
-        yardReady = n(row[coachCol + 1]);
-      }
-      if (coachUp.includes('CURRENT BACKLOG OF LAST YEAR')) {
-        backlog = n(row[coachCol + 1]);
-      }
+    // Strategy B: title row (hdrRowIdx - 1) — columns K/L
+    if (hdrRowIdx > 0) {
+      const titleRow = rows[hdrRowIdx - 1];
+      const tv = n(titleRow[yardCol]);
+      const tb = n(titleRow[backlogCol]);
+      if (tv > 0) yardReady = tv;
+      if (tb > 0) backlog   = tb;
+    }
 
-      if (coachName && coachUp !== 'COACH' && !coachUp.includes('SUMMARY') && !coachUp.includes('POSITION FOR')) {
-        if (coachUp !== 'TOTAL' && coachName && n(row[targetCol]) > 0) {
-          coaches.push({ type: coachName, target: n(row[targetCol]), out: n(row[outCol]), bal: n(row[balCol]) });
-        }
+    // ── Step 4: extract posDate from title row (row 0 typically) ─────────────
+    const titleRow0 = rows[0] || [];
+    for (const cell of titleRow0) {
+      const s = (cell || '').trim();
+      // Matches "April 2026" style or "Position April 2026" etc.
+      if (/april|may|june|july|august|september|october|november|december|january|february|march/i.test(s)) {
+        posDate = s.replace(/.*?(?=(?:january|february|march|april|may|june|july|august|september|october|november|december))/i,'').trim();
+        break;
       }
     }
   }
 
-  if (!mthShell && daily.length) mthShell = daily.reduce((s,r)=>s+r.shell,0);
-  if (!mthFurn  && daily.length) mthFurn  = daily.reduce((s,r)=>s+r.furn, 0);
-  if (!mthDesp  && daily.length) mthDesp  = daily.reduce((s,r)=>s+r.desp, 0);
+  // ── Step 5: iterate data rows ─────────────────────────────────────────────
+  const dataStart = hdrRowIdx >= 0 ? hdrRowIdx + 1 : 2;
+
+  for (let i = dataStart; i < rows.length; i++) {
+    const row  = rows[i];
+    const c0   = (row[dateCol]  || '').trim();
+    const c0up = c0.toUpperCase();
+
+    // ── Daily data row: has a date pattern dd.mm.yy or dd/mm/yy ────────────
+    if (/^\d{1,2}[./]\d{1,2}[./]\d{2,4}$/.test(c0)) {
+      daily.push({
+        date:  c0,
+        shell: n(row[shellCol]),
+        furn:  n(row[furnCol]),
+        desp:  n(row[despCol])
+      });
+    }
+
+    // ── Month total row ──────────────────────────────────────────────────────
+    if (c0up.includes('MONTH')) {
+      mthShell = n(row[shellCol]);
+      mthFurn  = n(row[furnCol]);
+      mthDesp  = n(row[despCol]);
+    }
+
+    // ── Year total row ───────────────────────────────────────────────────────
+    if (c0up.includes('YEAR')) {
+      yrShell = n(row[shellCol]);
+      yrFurn  = n(row[furnCol]);
+      yrDesp  = n(row[despCol]);
+    }
+
+    // ── Average row (AVG. Curr MTH/YR) ───────────────────────────────────────
+    // Values like "5.6/5.6" — take the first part (current month)
+    if (c0up.includes('AVG')) {
+      const parseAvg = v => {
+        const s = String(v || '').trim();
+        // Handle "5.6/5.6" format — take first number
+        const slash = s.split('/');
+        const first = slash[0].match(/([\d.]+)/);
+        return first ? first[1] : s;
+      };
+      avgShell = parseAvg(row[shellCol]);
+      avgFurn  = parseAvg(row[furnCol]);
+      avgDesp  = parseAvg(row[despCol]);
+    }
+
+    // ── Coach rows (right-side table, cols F–I) ────────────────────────────
+    const coachName = (row[coachCol] || '').trim();
+    const coachUp   = coachName.toUpperCase();
+
+    // Skip blank, header repeats, summary labels
+    if (
+      coachName &&
+      coachUp !== 'COACH' &&
+      coachUp !== 'TOTAL' &&
+      !coachUp.includes('SUMMARY') &&
+      !coachUp.includes('POSITION FOR') &&
+      !coachUp.includes('NUMBER OF READY') &&
+      !coachUp.includes('BACKLOG') &&
+      !coachUp.includes('CURRENT BACKLOG')
+    ) {
+      const tgt = n(row[targetCol]);
+      const out = n(row[outCol]);
+      const bal = n(row[balCol]);
+      // Only add if there is a meaningful target or outturn
+      if (tgt > 0 || out > 0) {
+        coaches.push({ type: coachName, target: tgt, out: out, bal: bal || (tgt - out) });
+      }
+    }
+
+    // ── Yard & backlog — also handle as labelled rows in left-side block ─────
+    if (coachUp.includes('NUMBER OF READY') || coachUp.includes('READY COACHES')) {
+      const v = n(row[coachCol + 1]);
+      if (v > 0) yardReady = v;
+    }
+    if (coachUp.includes('CURRENT BACKLOG') || coachUp.includes('BACKLOG OF LAST')) {
+      const v = n(row[coachCol + 1]);
+      if (v > 0) backlog = v;
+    }
+  }
+
+  // ── Fallback totals if not in sheet ───────────────────────────────────────
+  if (!mthShell && daily.length) mthShell = daily.reduce((s, r) => s + r.shell, 0);
+  if (!mthFurn  && daily.length) mthFurn  = daily.reduce((s, r) => s + r.furn,  0);
+  if (!mthDesp  && daily.length) mthDesp  = daily.reduce((s, r) => s + r.desp,  0);
   if (!yrShell) yrShell = mthShell;
   if (!yrFurn)  yrFurn  = mthFurn;
   if (!yrDesp)  yrDesp  = mthDesp;
 
   const wdays = daily.length || 1;
-  if (!avgShell) avgShell = (mthShell/wdays).toFixed(1);
-  if (!avgFurn)  avgFurn  = (mthFurn /wdays).toFixed(1);
-  if (!avgDesp)  avgDesp  = (mthDesp /wdays).toFixed(1);
+  if (!avgShell) avgShell = (mthShell / wdays).toFixed(1);
+  if (!avgFurn)  avgFurn  = (mthFurn  / wdays).toFixed(1);
+  if (!avgDesp)  avgDesp  = (mthDesp  / wdays).toFixed(1);
 
-  const totalTarget = coaches.reduce((s,r)=>s+r.target,0);
-  const totalOut    = coaches.reduce((s,r)=>s+r.out,   0);
-  const totalBal    = coaches.reduce((s,r)=>s+r.bal,   0) || (totalTarget - totalOut);
+  const totalTarget = coaches.reduce((s, r) => s + r.target, 0);
+  const totalOut    = coaches.reduce((s, r) => s + r.out,    0);
+  const totalBal    = coaches.reduce((s, r) => s + r.bal,    0) || (totalTarget - totalOut);
 
   // ── KPIs with animated counters ───────────────────────────────────────────
   animateCount(document.getElementById('kpi-shell'), mthShell, 700);
   document.getElementById('kpi-shell-sub').textContent = `Annual: ${yrShell} · Avg/day: ${avgShell}`;
+
   animateCount(document.getElementById('kpi-furn'), mthFurn, 750);
   document.getElementById('kpi-furn-sub').textContent  = `Annual: ${yrFurn} · Avg/day: ${avgFurn}`;
+
   animateCount(document.getElementById('kpi-desp'), mthDesp, 800);
   document.getElementById('kpi-desp-sub').textContent  = `Annual: ${yrDesp} · Avg/day: ${avgDesp}`;
+
   animateCount(document.getElementById('kpi-bal'), totalBal, 850);
   document.getElementById('kpi-bal-sub').textContent   = `Target: ${totalTarget.toLocaleString()} · ${totalOut} Achieved`;
 
   // ── Header date ───────────────────────────────────────────────────────────
-  if (!posDate) posDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  if (!posDate) posDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   document.getElementById('posDate').textContent = posDate;
 
   // ── Daily log table (last 10 working days) ────────────────────────────────
@@ -514,8 +623,8 @@ function render(rows) {
   coachBody.innerHTML += `<tr class="tot"><td>Total</td><td>${totalTarget.toLocaleString()}</td><td>${totalOut}</td><td>${totalBal.toLocaleString()}</td></tr>`;
 
   // ── Yard & backlog ────────────────────────────────────────────────────────
-  document.getElementById('yardReady').textContent = yardReady;
-  document.getElementById('backlog').textContent   = backlog;
+  document.getElementById('yardReady').textContent = yardReady || '—';
+  document.getElementById('backlog').textContent   = backlog   || '—';
 
   // ── Averages ──────────────────────────────────────────────────────────────
   document.getElementById('avg-shell').textContent = avgShell;
@@ -523,7 +632,7 @@ function render(rows) {
   document.getElementById('avg-desp').textContent  = avgDesp;
 
   // ── Footer with live clock ─────────────────────────────────────────────────
-  const refreshLabel = `Last refreshed: ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+  const refreshLabel = `Last refreshed: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
   startClock(refreshLabel);
   document.getElementById('ftDot').className = 'ft-dot';
 }
