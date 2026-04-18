@@ -48,6 +48,11 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; p
   border-radius: 12px;
   padding: 12px 14px;
   border-left: 3px solid transparent;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 .kpi.n { border-left-color: #0d2340; }
 .kpi.g { border-left-color: #c9a84c; }
@@ -55,6 +60,8 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; p
 .kpi.r { border-left-color: #a32d2d; }
 .kpi-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
 .kpi-val { font-size: 28px; font-weight: 500; color: #111; line-height: 1; }
+.kpi-val.counting { animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes popIn { 0%{transform:scale(0.85);opacity:0.4} 100%{transform:scale(1);opacity:1} }
 .kpi-sub { font-size: 10px; color: #888; margin-top: 3px; }
 
 .body { display: grid; grid-template-columns: 1.1fr 0.9fr 0.65fr; gap: 10px; align-items: start; }
@@ -64,7 +71,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; p
   border: 0.5px solid rgba(0,0,0,0.1);
   border-radius: 12px;
   padding: 14px 16px;
+  animation: fadeUp 0.4s ease both;
 }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.card:nth-child(1){animation-delay:0.05s}
+.card:nth-child(2){animation-delay:0.1s}
+
 .card-ttl {
   font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
   color: #666; font-weight: 500;
@@ -85,9 +97,11 @@ td {
   border-bottom: 0.5px solid rgba(0,0,0,0.06);
   text-align: center; font-size: 12px;
   color: #222;
+  transition: background 0.15s;
 }
 td:first-child { text-align: left; font-weight: 500; font-size: 11px; }
 tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f6f8fb; }
 .tot td {
   background: #f6f8fb;
   font-weight: 500; font-size: 12px;
@@ -101,7 +115,9 @@ tr:last-child td { border-bottom: none; }
   padding: 10px 14px;
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 8px;
+  transition: transform 0.15s;
 }
+.metric-box:hover { transform: translateX(2px); }
 .metric-box:last-child { margin-bottom: 0; }
 .metric-box.warn { background: #fff8ee; }
 .mb-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #666; }
@@ -117,7 +133,9 @@ tr:last-child td { border-bottom: none; }
   background: #f6f8fb;
   border-radius: 8px;
   margin-bottom: 6px;
+  transition: background 0.15s;
 }
+.avg-row:hover { background: #eef0f5; }
 .avg-row:last-child { margin-bottom: 0; }
 .avg-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; }
 .avg-val { font-size: 22px; font-weight: 500; }
@@ -127,8 +145,14 @@ tr:last-child td { border-bottom: none; }
 .prog-hdr { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
 .prog-lbl { color: #666; }
 .prog-v { font-weight: 500; color: #222; }
-.prog-bar { height: 4px; background: #eef0f5; border-radius: 3px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.prog-bar { height: 5px; background: #eef0f5; border-radius: 3px; overflow: hidden; position: relative; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width 1.1s cubic-bezier(0.22,1,0.36,1); }
+.prog-bar::after {
+  content:''; position:absolute; top:0; left:-60%; width:40%; height:100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  animation: shimmer 2.4s infinite 1.2s;
+}
+@keyframes shimmer { 0%{left:-60%} 100%{left:120%} }
 
 .ft {
   margin-top: 12px; font-size: 10px; color: #888;
@@ -136,8 +160,15 @@ tr:last-child td { border-bottom: none; }
   padding-top: 8px; display: flex; justify-content: space-between; align-items: center;
 }
 .ft-status { display: flex; align-items: center; gap: 6px; }
-.ft-dot { width: 6px; height: 6px; border-radius: 50%; background: #1d6e5a; }
-.ft-dot.err { background: #a32d2d; }
+.ft-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #1d6e5a;
+  animation: pulse 2s ease-in-out infinite;
+}
+.ft-dot.err { background: #a32d2d; animation: none; }
+@keyframes pulse {
+  0%,100%{ box-shadow: 0 0 0 0 rgba(29,110,90,0.5); }
+  50%{ box-shadow: 0 0 0 4px rgba(29,110,90,0); }
+}
 
 /* Loading overlay */
 #loadOverlay {
@@ -165,10 +196,14 @@ tr:last-child td { border-bottom: none; }
 }
 #errBanner.show { display: flex; }
 
+/* ── FULLSCREEN: off-white background ── */
+#wrapper:fullscreen,
+#wrapper:-webkit-full-screen {
+  background: #f9f7f4;
+  overflow-y: auto;
+}
 #wrapper:fullscreen .db,
 #wrapper:-webkit-full-screen .db { padding: 16px; }
-#wrapper:fullscreen,
-#wrapper:-webkit-full-screen { background: #f6f8fb; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -339,43 +374,42 @@ function parseCSV(text) {
   return rows;
 }
 
-// ─── SAFE NUMBER (strips commas, parentheses like "187") ──────────────────────
+// ─── SAFE NUMBER ──────────────────────────────────────────────────────────────
 function n(v) {
   if (v === undefined || v === null) return 0;
-  // Strip anything inside parentheses e.g. "384 (24)" → "384"
   const clean = String(v).replace(/\(.*?\)/g, '').replace(/,/g, '').trim();
   const x = parseFloat(clean);
   return isNaN(x) ? 0 : x;
 }
 
+// ─── ANIMATED COUNTER ────────────────────────────────────────────────────────
+function animateCount(el, target, duration) {
+  const start = performance.now();
+  const from = parseFloat(el.textContent) || 0;
+  el.classList.add('counting');
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (target - from) * ease).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+    else { el.textContent = target.toLocaleString(); el.classList.remove('counting'); }
+  }
+  requestAnimationFrame(step);
+}
+
+// ─── LIVE CLOCK ───────────────────────────────────────────────────────────────
+let clockRef = null;
+function startClock(baseLabel) {
+  if (clockRef) clearInterval(clockRef);
+  function tick() {
+    const t = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('ftStatus').textContent = `${baseLabel} · ${t}`;
+  }
+  tick();
+  clockRef = setInterval(tick, 1000);
+}
+
 // ─── LAYOUT-AWARE RENDER ──────────────────────────────────────────────────────
-/*
-  The sheet "2026-27" is a SIDE-BY-SIDE layout (from screenshot):
-
-  LEFT side  (cols A–D):   Date | Shell | Furnishing | Despatched
-    Row 1  : Header row  "GM Outturn Position April 2026" or just column labels
-    Row 2  : "Date", "Shell", "Furnishing", "Despatched"
-    Rows 3+: daily data (date strings like "01.04.26")
-    ...blank rows...
-    Near bottom: "Month Total", totals
-                 "Year Total",  totals
-                 "AVG. Curr MTH/YR", avg values
-
-  RIGHT side (cols F–I):   Coach | Target (Rake) | Outturn | Balanced
-    Row 1  : "Summary of Target, Production & Balanced Coach Position for 2026-27"
-    Row 2  : "Coach", "Target (Rake)", "Outturn", "Balanced"
-    Rows 3+: coach rows (MEMU, HS Spart, SPIC, TRAIN SET VB, Namo Bharat(AC),
-             LHB AC, Amrit Bharat AC, Banladesh AC, ACRA, RDSO,
-             LHB NAC, Amrit Bharat NAC, Bangladesh NAC, RA NAC, Total)
-    ...then below:
-    "Number of Ready Coaches in Yard"  | value  (col F+G area)
-    "Current Backlog of last year"     | value
-
-  Column indices (0-based) after CSV parse:
-    Left  : 0=Date, 1=Shell, 2=Furnishing, 3=Despatched
-    Right : 5=Coach, 6=Target(Rake), 7=Outturn, 8=Balanced
-            (columns E is spacer so right starts at col 5)
-*/
 function render(rows) {
   const daily   = [];
   const coaches = [];
@@ -385,7 +419,6 @@ function render(rows) {
   let yardReady = 0, backlog = 0;
   let posDate = '';
 
-  // Find column indices dynamically by scanning header row
   let dateCol=0, shellCol=1, furnCol=2, despCol=3;
   let coachCol=5, targetCol=6, outCol=7, balCol=8;
   let headerFound = false;
@@ -393,11 +426,8 @@ function render(rows) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const r0 = (row[0]||'').trim().toUpperCase();
-    const r1 = (row[1]||'').trim().toUpperCase();
 
-    // ── Detect header row for left table ──────────────────────────────────────
     if (!headerFound && (r0 === 'DATE' || r0.includes('DATE'))) {
-      // Locate columns by header text
       for (let c = 0; c < row.length; c++) {
         const h = (row[c]||'').trim().toUpperCase();
         if (h === 'DATE') dateCol = c;
@@ -410,11 +440,8 @@ function render(rows) {
         else if (h.includes('BALANCE') || h.includes('BAL')) balCol = c;
       }
       headerFound = true;
-
-      // Also try to extract position date from a header cell
       for (let c = 0; c < row.length; c++) {
         const cell = (row[c]||'').trim();
-        // Look for a cell that has a date-like title in nearby rows
         if (cell.toUpperCase().includes('APRIL') || cell.toUpperCase().includes('POSITION')) {
           posDate = cell;
         }
@@ -422,71 +449,32 @@ function render(rows) {
       continue;
     }
 
-    // ── Once header found, parse data rows ────────────────────────────────────
     if (headerFound) {
       const c0 = (row[dateCol]||'').trim();
       const c0up = c0.toUpperCase();
 
-      // Daily date rows: value in dateCol looks like "01.04.26" or "1/4/26" etc.
       if (c0 && /\d{1,2}[./]\d{1,2}[./]\d{2,4}/.test(c0)) {
-        daily.push({
-          date:  c0,
-          shell: n(row[shellCol]),
-          furn:  n(row[furnCol]),
-          desp:  n(row[despCol]),
-        });
+        daily.push({ date: c0, shell: n(row[shellCol]), furn: n(row[furnCol]), desp: n(row[despCol]) });
       }
-
-      // Month Total row
       if (c0up.includes('MONTH') || c0up === 'MONTH TOTAL') {
-        mthShell = n(row[shellCol]);
-        mthFurn  = n(row[furnCol]);
-        mthDesp  = n(row[despCol]);
+        mthShell = n(row[shellCol]); mthFurn = n(row[furnCol]); mthDesp = n(row[despCol]);
       }
-
-      // Year Total row
       if (c0up.includes('YEAR') || c0up === 'YEAR TOTAL') {
-        yrShell = n(row[shellCol]);
-        yrFurn  = n(row[furnCol]);
-        yrDesp  = n(row[despCol]);
+        yrShell = n(row[shellCol]); yrFurn = n(row[furnCol]); yrDesp = n(row[despCol]);
       }
-
-      // AVG row — format "6.3/6.3"  or just "6.3"
       if (c0up.includes('AVG')) {
-        const parseAvg = v => {
-          const s = String(v||'').trim();
-          // take the first number before any slash
-          const m = s.match(/([\d.]+)/);
-          return m ? m[1] : s;
-        };
-        avgShell = parseAvg(row[shellCol]);
-        avgFurn  = parseAvg(row[furnCol]);
-        avgDesp  = parseAvg(row[despCol]);
+        const parseAvg = v => { const s = String(v||'').trim(); const m = s.match(/([\d.]+)/); return m ? m[1] : s; };
+        avgShell = parseAvg(row[shellCol]); avgFurn = parseAvg(row[furnCol]); avgDesp = parseAvg(row[despCol]);
       }
 
-      // ── Right side: coach table ─────────────────────────────────────────────
       const coachName = (row[coachCol]||'').trim();
       const coachUp   = coachName.toUpperCase();
-
-      // Skip header/title rows on the right
       if (coachName && coachUp !== 'COACH' && !coachUp.includes('SUMMARY') && !coachUp.includes('POSITION FOR')) {
-        // "Total" row — capture but add separately
-        if (coachUp === 'TOTAL') {
-          // handled via reduce later; skip adding to coaches array
-        } else if (coachName && n(row[targetCol]) > 0) {
-          coaches.push({
-            type:   coachName,
-            target: n(row[targetCol]),
-            out:    n(row[outCol]),
-            bal:    n(row[balCol]),
-          });
+        if (coachUp !== 'TOTAL' && coachName && n(row[targetCol]) > 0) {
+          coaches.push({ type: coachName, target: n(row[targetCol]), out: n(row[outCol]), bal: n(row[balCol]) });
         }
       }
-
-      // ── Yard & backlog (right side, below coach table) ──────────────────────
-      // These rows have label in coachCol and value in targetCol or next col
       if (coachUp.includes('READY COACH') || coachUp.includes('NUMBER OF READY')) {
-        // value might be in targetCol or targetCol+1
         yardReady = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
       }
       if (coachUp.includes('BACKLOG')) {
@@ -495,8 +483,6 @@ function render(rows) {
     }
   }
 
-  // ── Fallbacks ─────────────────────────────────────────────────────────────
-  // If Month Total row wasn't explicitly found, sum from daily rows
   if (!mthShell && daily.length) mthShell = daily.reduce((s,r)=>s+r.shell,0);
   if (!mthFurn  && daily.length) mthFurn  = daily.reduce((s,r)=>s+r.furn, 0);
   if (!mthDesp  && daily.length) mthDesp  = daily.reduce((s,r)=>s+r.desp, 0);
@@ -513,25 +499,22 @@ function render(rows) {
   const totalOut    = coaches.reduce((s,r)=>s+r.out,   0);
   const totalBal    = coaches.reduce((s,r)=>s+r.bal,   0) || (totalTarget - totalOut);
 
-  // ── KPIs ──────────────────────────────────────────────────────────────────
-  document.getElementById('kpi-shell').textContent     = mthShell;
+  // ── KPIs with animated counters ───────────────────────────────────────────
+  animateCount(document.getElementById('kpi-shell'), mthShell, 700);
   document.getElementById('kpi-shell-sub').textContent = `Annual: ${yrShell} · Avg/day: ${avgShell}`;
-  document.getElementById('kpi-furn').textContent      = mthFurn;
+  animateCount(document.getElementById('kpi-furn'), mthFurn, 750);
   document.getElementById('kpi-furn-sub').textContent  = `Annual: ${yrFurn} · Avg/day: ${avgFurn}`;
-  document.getElementById('kpi-desp').textContent      = mthDesp;
+  animateCount(document.getElementById('kpi-desp'), mthDesp, 800);
   document.getElementById('kpi-desp-sub').textContent  = `Annual: ${yrDesp} · Avg/day: ${avgDesp}`;
-  document.getElementById('kpi-bal').textContent       = totalBal.toLocaleString();
+  animateCount(document.getElementById('kpi-bal'), totalBal, 850);
   document.getElementById('kpi-bal-sub').textContent   = `Target: ${totalTarget.toLocaleString()} · ${totalOut} Achieved`;
 
   // ── Header date ───────────────────────────────────────────────────────────
-  // Try to extract a clean date string; fallback to today
-  if (!posDate) {
-    posDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  }
+  if (!posDate) posDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   document.getElementById('posDate').textContent = posDate;
 
   // ── Daily log table (last 10 working days) ────────────────────────────────
-  const logBody  = document.getElementById('dailyLog');
+  const logBody = document.getElementById('dailyLog');
   logBody.innerHTML = '';
   daily.slice(-10).forEach(r => {
     logBody.innerHTML += `<tr><td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td></tr>`;
@@ -576,9 +559,9 @@ function render(rows) {
   document.getElementById('avg-furn').textContent  = avgFurn;
   document.getElementById('avg-desp').textContent  = avgDesp;
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  const now = new Date();
-  document.getElementById('ftStatus').textContent = `Last refreshed: ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+  // ── Footer with live clock ─────────────────────────────────────────────────
+  const refreshLabel = `Last refreshed: ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+  startClock(refreshLabel);
   document.getElementById('ftDot').className = 'ft-dot';
 }
 
