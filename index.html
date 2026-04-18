@@ -450,18 +450,19 @@ function render(rows) {
 
       const coachName = (row[coachCol]||'').trim();
       const coachUp   = coachName.toUpperCase();
+      
+      // MODIFIED: Read specific Yard and Backlog values from the "next entry" after the header match
+      if (coachUp.includes('NUMBER OF READY COACHES IN YARD')) {
+        yardReady = n(row[coachCol + 1]);
+      }
+      if (coachUp.includes('CURRENT BACKLOG OF LAST YEAR')) {
+        backlog = n(row[coachCol + 1]);
+      }
+
       if (coachName && coachUp !== 'COACH' && !coachUp.includes('SUMMARY') && !coachUp.includes('POSITION FOR')) {
         if (coachUp !== 'TOTAL' && coachName && n(row[targetCol]) > 0) {
           coaches.push({ type: coachName, target: n(row[targetCol]), out: n(row[outCol]), bal: n(row[balCol]) });
         }
-      }
-      
-      // MODIFIED: Specific header checks for Yard and Backlog
-      if (coachUp.includes('NUMBER OF READY COACHES IN YARD')) {
-        yardReady = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
-      }
-      if (coachUp.includes('CURRENT BACKLOG OF LAST YEAR')) {
-        backlog = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
       }
     }
   }
