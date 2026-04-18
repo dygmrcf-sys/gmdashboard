@@ -17,6 +17,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; p
   margin-bottom: 12px;
   display: flex; align-items: center; justify-content: space-between;
 }
+.hdr-l { flex: 1; }
 .hdr-l .org { font-size: 10px; letter-spacing: 2px; color: #e8d49e; text-transform: uppercase; margin-bottom: 2px; }
 .hdr-l h1 { font-size: 16px; color: #fff; font-weight: 500; margin: 0 0 2px; }
 .hdr-l .sub { font-size: 11px; color: rgba(255,255,255,0.45); }
@@ -25,14 +26,20 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; p
 .dlbl { font-size: 10px; color: #e8d49e; letter-spacing: 1.2px; text-transform: uppercase; }
 .dval { font-size: 14px; color: #fff; font-weight: 500; margin-top: 1px; }
 
-#fsBtn {
+.hdr-btns { display: flex; gap: 8px; align-items: center; }
+
+#fsBtn, #refreshBtn {
   display: inline-flex; align-items: center; gap: 5px;
   background: rgba(255,255,255,0.1); border: 0.5px solid rgba(255,255,255,0.25);
   border-radius: 8px; padding: 5px 10px;
   color: rgba(255,255,255,0.8); font-size: 11px; cursor: pointer;
   font-family: inherit; letter-spacing: 0.4px;
+  transition: background 0.15s;
 }
-#fsBtn:hover { background: rgba(255,255,255,0.18); }
+#fsBtn:hover, #refreshBtn:hover { background: rgba(255,255,255,0.18); }
+#refreshBtn.loading { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+#refreshBtn.loading svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
 .kpi {
@@ -86,11 +93,6 @@ tr:last-child td { border-bottom: none; }
   font-weight: 500; font-size: 12px;
 }
 
-.chart-wrap { position: relative; width: 100%; height: 130px; margin-top: 12px; }
-.legend { display: flex; gap: 14px; margin-top: 8px; }
-.legend span { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #666; }
-.legend b { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-
 .right-col { display: flex; flex-direction: column; gap: 10px; }
 
 .metric-box {
@@ -131,8 +133,37 @@ tr:last-child td { border-bottom: none; }
 .ft {
   margin-top: 12px; font-size: 10px; color: #888;
   border-top: 0.5px solid rgba(0,0,0,0.08);
-  padding-top: 8px; display: flex; justify-content: space-between;
+  padding-top: 8px; display: flex; justify-content: space-between; align-items: center;
 }
+.ft-status { display: flex; align-items: center; gap: 6px; }
+.ft-dot { width: 6px; height: 6px; border-radius: 50%; background: #1d6e5a; }
+.ft-dot.err { background: #a32d2d; }
+
+/* Loading overlay */
+#loadOverlay {
+  position: fixed; inset: 0; background: rgba(246,248,251,0.82);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 999; gap: 12px;
+}
+#loadOverlay.hidden { display: none; }
+.ld-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid #dde3ed;
+  border-top-color: #0d2340;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.ld-txt { font-size: 12px; color: #555; }
+
+/* Error banner */
+#errBanner {
+  background: #fff0f0; border: 0.5px solid #f5c6c6;
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 11px; color: #a32d2d;
+  margin-bottom: 10px; display: none;
+  align-items: center; gap: 8px;
+}
+#errBanner.show { display: flex; }
 
 #wrapper:fullscreen .db,
 #wrapper:-webkit-full-screen .db { padding: 16px; }
@@ -142,10 +173,22 @@ tr:last-child td { border-bottom: none; }
 </head>
 <body>
 
-<h2 class="sr-only">GM Production Outturn Dashboard — Rail Coach Factory Kapurthala, position as of 15 April 2026</h2>
+<h2 class="sr-only">GM Production Outturn Dashboard — Rail Coach Factory Kapurthala</h2>
 
 <div id="wrapper">
 <div class="db">
+
+  <!-- Loading Overlay -->
+  <div id="loadOverlay">
+    <div class="ld-spinner"></div>
+    <div class="ld-txt">Fetching data from Google Sheets…</div>
+  </div>
+
+  <!-- Error Banner -->
+  <div id="errBanner">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="errMsg">Could not fetch data.</span>
+  </div>
 
   <div class="hdr">
     <div class="hdr-l">
@@ -156,92 +199,61 @@ tr:last-child td { border-bottom: none; }
     <div class="hdr-r">
       <div class="dblock">
         <div class="dlbl">Position as of</div>
-        <div class="dval">15 April 2026</div>
+        <div class="dval" id="posDate">—</div>
       </div>
-      <button id="fsBtn" onclick="toggleFS()">
-        <svg id="fsIco" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-        Full screen
-      </button>
+      <div class="hdr-btns">
+        <button id="refreshBtn" onclick="loadData()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh
+        </button>
+        <button id="fsBtn" onclick="toggleFS()">
+          <svg id="fsIco" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          Full screen
+        </button>
+      </div>
     </div>
   </div>
 
   <div class="kpis">
     <div class="kpi n">
       <div class="kpi-lbl">Shells (MTH)</div>
-      <div class="kpi-val">63</div>
-      <div class="kpi-sub">Annual: 63 &nbsp;·&nbsp; Avg/day: 4.5</div>
+      <div class="kpi-val" id="kpi-shell">—</div>
+      <div class="kpi-sub" id="kpi-shell-sub">Annual: — · Avg/day: —</div>
     </div>
     <div class="kpi g">
       <div class="kpi-lbl">Furnishing (MTH)</div>
-      <div class="kpi-val">11</div>
-      <div class="kpi-sub">Annual: 11 &nbsp;·&nbsp; Avg/day: 0.9</div>
+      <div class="kpi-val" id="kpi-furn">—</div>
+      <div class="kpi-sub" id="kpi-furn-sub">Annual: — · Avg/day: —</div>
     </div>
     <div class="kpi t">
       <div class="kpi-lbl">Despatched (MTH)</div>
-      <div class="kpi-val">102</div>
-      <div class="kpi-sub">Annual: 102 &nbsp;·&nbsp; Avg/day: 7.4</div>
+      <div class="kpi-val" id="kpi-desp">—</div>
+      <div class="kpi-sub" id="kpi-desp-sub">Annual: — · Avg/day: —</div>
     </div>
     <div class="kpi r">
       <div class="kpi-lbl">Balance coaches</div>
-      <div class="kpi-val">2,975</div>
-      <div class="kpi-sub">Target: 2,986 &nbsp;·&nbsp; 11 Achieved</div>
+      <div class="kpi-val" id="kpi-bal">—</div>
+      <div class="kpi-sub" id="kpi-bal-sub">Target: — · — Achieved</div>
     </div>
   </div>
 
   <div class="body">
 
     <div class="card">
-      <div class="card-ttl">Daily production log — April 2026</div>
+      <div class="card-ttl">Daily production log — Last 10 working days</div>
       <table>
         <thead>
           <tr><th>Date</th><th>Shell</th><th>Furn.</th><th>Desp.</th></tr>
         </thead>
-        <tbody>
-          <tr><td>01 Apr</td><td>1</td><td>1</td><td>0</td></tr>
-          <tr><td>02 Apr</td><td>1</td><td>2</td><td>15</td></tr>
-          <tr><td>03 Apr</td><td>6</td><td>1</td><td>12</td></tr>
-          <tr><td>04 Apr</td><td>3</td><td>3</td><td>0</td></tr>
-          <tr><td>06 Apr</td><td>5</td><td>1</td><td>30</td></tr>
-          <tr><td>07 Apr</td><td>6</td><td>1</td><td>0</td></tr>
-          <tr><td>08 Apr</td><td>7</td><td>0</td><td>0</td></tr>
-          <tr><td>09 Apr</td><td>5</td><td>0</td><td>17</td></tr>
-          <tr><td>10 Apr</td><td>8</td><td>1</td><td>0</td></tr>
-          <tr><td>11 Apr</td><td>8</td><td>0</td><td>15</td></tr>
-          <tr><td>13 Apr</td><td>9</td><td>1</td><td>0</td></tr>
-          <tr><td>15 Apr</td><td>4</td><td>0</td><td>13</td></tr>
-          <tr class="tot"><td>Total</td><td>63</td><td>11</td><td>102</td></tr>
-        </tbody>
+        <tbody id="dailyLog"></tbody>
       </table>
-      <div class="chart-wrap">
-        <canvas id="dc" role="img" aria-label="Grouped bar chart of daily shell, furnishing, and despatch production for April 2026">Shell ranged 1–9, furnishing 0–3, despatch 0–30 per day.</canvas>
-      </div>
-      <div class="legend">
-        <span><b style="background:#0d2340;"></b>Shell</span>
-        <span><b style="background:#c9a84c;"></b>Furnishing</span>
-        <span><b style="background:#1d6e5a;"></b>Despatch</span>
-      </div>
     </div>
 
     <div class="card">
       <div class="card-ttl">Coach-wise position 2026–27</div>
       <table>
         <thead><tr><th>Coach type</th><th>Target</th><th>Out.</th><th>Bal.</th></tr></thead>
-        <tbody>
-          <tr><td>MEMU</td><td>384</td><td>5</td><td>379</td></tr>
-          <tr><td>LHB NAC</td><td>938</td><td>6</td><td>932</td></tr>
-          <tr><td>Amrit Bharat NAC</td><td>808</td><td>0</td><td>808</td></tr>
-          <tr><td>Namo Bharat AC</td><td>64</td><td>0</td><td>64</td></tr>
-          <tr><td>LHB AC</td><td>296</td><td>0</td><td>296</td></tr>
-          <tr><td>Amrit Bharat AC</td><td>126</td><td>0</td><td>126</td></tr>
-          <tr><td>Bangladesh AC</td><td>56</td><td>0</td><td>56</td></tr>
-          <tr><td>Bangladesh NAC</td><td>84</td><td>0</td><td>84</td></tr>
-          <tr><td>Train Set VB</td><td>96</td><td>0</td><td>96</td></tr>
-          <tr><td>RA NAC</td><td>66</td><td>0</td><td>66</td></tr>
-          <tr><td>ACRA</td><td>26</td><td>0</td><td>26</td></tr>
-          <tr><td>HS Spart / SPIC</td><td>38</td><td>0</td><td>38</td></tr>
-          <tr><td>RDSO</td><td>4</td><td>0</td><td>4</td></tr>
-          <tr class="tot"><td>Total</td><td>2,986</td><td>11</td><td>2,975</td></tr>
-        </tbody>
+        <tbody id="coachTable"></tbody>
       </table>
     </div>
 
@@ -258,14 +270,14 @@ tr:last-child td { border-bottom: none; }
             <div class="mb-lbl">Ready in yard</div>
             <div class="mb-sub">Awaiting despatch</div>
           </div>
-          <div class="mb-val" style="color:#1d6e5a;">38</div>
+          <div class="mb-val" id="yardReady" style="color:#1d6e5a;">—</div>
         </div>
         <div class="metric-box warn">
           <div>
             <div class="mb-lbl">Backlog — prev. year</div>
             <div class="mb-sub">Carried forward</div>
           </div>
-          <div class="mb-val">94</div>
+          <div class="mb-val" id="backlog">—</div>
         </div>
       </div>
 
@@ -273,15 +285,15 @@ tr:last-child td { border-bottom: none; }
         <div class="card-ttl">MTH avg per working day</div>
         <div class="avg-row">
           <div class="avg-lbl">Shell</div>
-          <div class="avg-val" style="color:#0d2340;">4.5</div>
+          <div class="avg-val" id="avg-shell" style="color:#0d2340;">—</div>
         </div>
         <div class="avg-row">
           <div class="avg-lbl">Furnishing</div>
-          <div class="avg-val" style="color:#c9a84c;">0.9</div>
+          <div class="avg-val" id="avg-furn" style="color:#c9a84c;">—</div>
         </div>
         <div class="avg-row">
           <div class="avg-lbl">Despatch</div>
-          <div class="avg-val" style="color:#1d6e5a;">7.4</div>
+          <div class="avg-val" id="avg-desp" style="color:#1d6e5a;">—</div>
         </div>
       </div>
     </div>
@@ -290,79 +302,227 @@ tr:last-child td { border-bottom: none; }
 
   <div class="ft">
     <span>Rail Coach Factory · Kapurthala &nbsp;|&nbsp; General Manager's Office &nbsp;|&nbsp; For Internal Use Only</span>
-    <span>Data as of 15 April 2026</span>
+    <div class="ft-status">
+      <div class="ft-dot" id="ftDot"></div>
+      <span id="ftStatus">Loading…</span>
+    </div>
   </div>
 
 </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-new Chart(document.getElementById('dc'), {
-  type: 'bar',
-  data: {
-    labels: ['01','02','03','04','06','07','08','09','10','11','13','15'],
-    datasets: [
-      { label: 'Shell',      data: [1,1,6,3,5,6,7,5,8,8,9,4], backgroundColor: '#0d2340', borderRadius: 2, borderSkipped: false },
-      { label: 'Furnishing', data: [1,2,1,3,1,1,0,0,1,0,1,0], backgroundColor: '#c9a84c', borderRadius: 2, borderSkipped: false },
-      { label: 'Despatch',   data: [0,15,12,0,30,0,0,17,0,15,0,13], backgroundColor: '#1d6e5a', borderRadius: 2, borderSkipped: false }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: 'rgba(13,35,64,0.92)',
-        titleFont: { size: 11 },
-        bodyFont: { size: 11 },
-        padding: 8,
-        cornerRadius: 6
-      }
-    },
-    scales: {
-      x: {
-        ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: false, color: '#888' },
-        grid: { display: false },
-        border: { display: false }
-      },
-      y: {
-        ticks: { font: { size: 9 }, color: '#888', stepSize: 10 },
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        border: { display: false }
-      }
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRl_jE4aMJYmIC2xxHC2TABQshgcPffgqvXnvQdWS0mzPBxiqwi4BU1pTselF4eibEiVw0HDUpNEG6C/pub?gid=1620327917&single=true&output=csv';
+
+// ─── CSV PARSER (handles quoted commas) ─────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cols.push(cur.trim());
+    rows.push(cols);
+  }
+  return rows;
+}
+
+// ─── SAFE NUMBER ─────────────────────────────────────────────────────────────
+function n(v) {
+  const x = parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(x) ? 0 : x;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render(data) {
+  /*
+    Expected CSV structure for sheet "2026-27":
+    Section markers in first column (case-insensitive):
+
+    SECTION: DAILY_LOG
+    Date, Shell, Furnishing, Despatch
+    <rows…>
+
+    SECTION: COACH_WISE
+    Coach Type, Target, Outturn, Balance
+    <rows…>
+
+    SECTION: YARD
+    Ready in Yard, <val>
+    Backlog, <val>
+
+    SECTION: META
+    Position Date, <val>
+    Avg Shell, <val>
+    Avg Furnishing, <val>
+    Avg Despatch, <val>
+  */
+
+  let section = null;
+  const daily = [], coaches = [];
+  let yardVal = 0, backlogVal = 0;
+  let posDate = '', avgShell = 0, avgFurn = 0, avgDesp = 0;
+
+  for (const row of data) {
+    const key = (row[0] || '').trim().toUpperCase();
+
+    // Section header detection
+    if (key === 'SECTION: DAILY_LOG' || key === 'DAILY_LOG') { section = 'daily'; continue; }
+    if (key === 'SECTION: COACH_WISE' || key === 'COACH_WISE') { section = 'coach'; continue; }
+    if (key === 'SECTION: YARD' || key === 'YARD') { section = 'yard'; continue; }
+    if (key === 'SECTION: META' || key === 'META') { section = 'meta'; continue; }
+    // Skip header rows
+    if (key === 'DATE' || key === 'COACH TYPE' || key === 'READY IN YARD' && section === 'yard' && row[1] === 'Value') continue;
+
+    if (section === 'daily' && row[0] && key !== 'TOTAL' && key !== 'TOTAL (APR)') {
+      daily.push({ date: row[0], shell: n(row[1]), furn: n(row[2]), desp: n(row[3]) });
+    }
+    if (section === 'coach' && row[0] && key !== 'TOTAL' && key !== 'COACH TYPE') {
+      coaches.push({ type: row[0], target: n(row[1]), out: n(row[2]), bal: n(row[3]) });
+    }
+    if (section === 'yard') {
+      if (key === 'READY IN YARD' || key === 'READY') yardVal = n(row[1]);
+      if (key === 'BACKLOG' || key === 'BACKLOG — PREV. YEAR') backlogVal = n(row[1]);
+    }
+    if (section === 'meta') {
+      if (key === 'POSITION DATE' || key === 'DATE') posDate = row[1] || '';
+      if (key === 'AVG SHELL' || key === 'SHELL AVG') avgShell = n(row[1]);
+      if (key === 'AVG FURNISHING' || key === 'FURNISHING AVG') avgFurn = n(row[1]);
+      if (key === 'AVG DESPATCH' || key === 'DESPATCH AVG') avgDesp = n(row[1]);
     }
   }
-});
 
-const progData = [
-  { label: 'LHB NAC',          target: 938,  out: 6,  color: '#0d2340' },
-  { label: 'Amrit Bharat NAC', target: 808,  out: 0,  color: '#1a3a5c' },
-  { label: 'MEMU',             target: 384,  out: 5,  color: '#c9a84c' },
-  { label: 'LHB AC',           target: 296,  out: 0,  color: '#1d6e5a' },
-  { label: 'Amrit Bharat AC',  target: 126,  out: 0,  color: '#a32d2d' },
-  { label: 'Total (2,986)',     target: 2986, out: 11, color: '#0d2340' },
-];
-const pc = document.getElementById('progs');
-progData.forEach(p => {
-  const pct = Math.max(0.4, (p.out / p.target) * 100).toFixed(2);
-  pc.innerHTML += `<div class="prog-item">
-    <div class="prog-hdr">
-      <span class="prog-lbl">${p.label}</span>
-      <span class="prog-v">${p.out}/${p.target.toLocaleString()}</span>
-    </div>
-    <div class="prog-bar">
-      <div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div>
-    </div>
-  </div>`;
-});
-requestAnimationFrame(() => {
-  document.querySelectorAll('.prog-fill').forEach(el => {
-    setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 300);
+  // ── Totals from daily log ──
+  const totalShell = daily.reduce((s, r) => s + r.shell, 0);
+  const totalFurn  = daily.reduce((s, r) => s + r.furn,  0);
+  const totalDesp  = daily.reduce((s, r) => s + r.desp,  0);
+  const wdays = daily.length || 1;
+
+  // Fallback: compute averages if not in META
+  if (!avgShell) avgShell = +(totalShell / wdays).toFixed(1);
+  if (!avgFurn)  avgFurn  = +(totalFurn  / wdays).toFixed(1);
+  if (!avgDesp)  avgDesp  = +(totalDesp  / wdays).toFixed(1);
+
+  // ── Coach totals ──
+  const totalTarget = coaches.reduce((s, r) => s + r.target, 0);
+  const totalOut    = coaches.reduce((s, r) => s + r.out,    0);
+  const totalBal    = coaches.reduce((s, r) => s + r.bal,    0) || (totalTarget - totalOut);
+
+  // ── KPIs ──
+  document.getElementById('kpi-shell').textContent = totalShell;
+  document.getElementById('kpi-shell-sub').textContent = `Annual: ${totalShell} · Avg/day: ${avgShell}`;
+  document.getElementById('kpi-furn').textContent  = totalFurn;
+  document.getElementById('kpi-furn-sub').textContent  = `Annual: ${totalFurn} · Avg/day: ${avgFurn}`;
+  document.getElementById('kpi-desp').textContent  = totalDesp;
+  document.getElementById('kpi-desp-sub').textContent  = `Annual: ${totalDesp} · Avg/day: ${avgDesp}`;
+  document.getElementById('kpi-bal').textContent   = totalBal.toLocaleString();
+  document.getElementById('kpi-bal-sub').textContent   = `Target: ${totalTarget.toLocaleString()} · ${totalOut} Achieved`;
+
+  // ── Header date ──
+  document.getElementById('posDate').textContent = posDate || new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+
+  // ── Daily log table ──
+  const logBody = document.getElementById('dailyLog');
+  logBody.innerHTML = '';
+  const last10 = daily.slice(-10);
+  last10.forEach(r => {
+    logBody.innerHTML += `<tr><td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td></tr>`;
   });
-});
+  // Total row — uses monthly totals from all daily data
+  logBody.innerHTML += `<tr class="tot"><td>Total (MTH)</td><td>${totalShell}</td><td>${totalFurn}</td><td>${totalDesp}</td></tr>`;
 
+  // ── Coach-wise table ──
+  const coachBody = document.getElementById('coachTable');
+  coachBody.innerHTML = '';
+  coaches.forEach(r => {
+    coachBody.innerHTML += `<tr><td>${r.type}</td><td>${r.target.toLocaleString()}</td><td>${r.out}</td><td>${r.bal.toLocaleString()}</td></tr>`;
+  });
+  coachBody.innerHTML += `<tr class="tot"><td>Total</td><td>${totalTarget.toLocaleString()}</td><td>${totalOut}</td><td>${totalBal.toLocaleString()}</td></tr>`;
+
+  // ── Progress bars ──
+  const progColors = ['#0d2340','#1a3a5c','#c9a84c','#1d6e5a','#a32d2d','#0d2340'];
+  const topCoaches = coaches.slice(0, 5);
+  const progData = [
+    ...topCoaches.map((c, i) => ({ label: c.type, target: c.target, out: c.out, color: progColors[i] })),
+    { label: `Total (${totalTarget.toLocaleString()})`, target: totalTarget, out: totalOut, color: '#0d2340' }
+  ];
+  const pc = document.getElementById('progs');
+  pc.innerHTML = '';
+  progData.forEach(p => {
+    const pct = Math.max(0.4, (p.out / (p.target || 1)) * 100).toFixed(2);
+    pc.innerHTML += `<div class="prog-item">
+      <div class="prog-hdr">
+        <span class="prog-lbl">${p.label}</span>
+        <span class="prog-v">${p.out}/${p.target.toLocaleString()}</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div>
+      </div>
+    </div>`;
+  });
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.prog-fill').forEach(el => {
+      setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 300);
+    });
+  });
+
+  // ── Yard & backlog ──
+  document.getElementById('yardReady').textContent = yardVal;
+  document.getElementById('backlog').textContent   = backlogVal;
+
+  // ── Averages ──
+  document.getElementById('avg-shell').textContent = avgShell;
+  document.getElementById('avg-furn').textContent  = avgFurn;
+  document.getElementById('avg-desp').textContent  = avgDesp;
+
+  // ── Footer status ──
+  const now = new Date();
+  document.getElementById('ftStatus').textContent = `Last refreshed: ${now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })}`;
+  document.getElementById('ftDot').className = 'ft-dot';
+}
+
+// ─── FETCH & LOAD ─────────────────────────────────────────────────────────────
+async function loadData() {
+  const refreshBtn = document.getElementById('refreshBtn');
+  const overlay    = document.getElementById('loadOverlay');
+  const errBanner  = document.getElementById('errBanner');
+
+  refreshBtn.classList.add('loading');
+  errBanner.classList.remove('show');
+
+  // Show overlay only on first load (no data yet)
+  const hasData = document.getElementById('dailyLog').children.length > 0;
+  if (!hasData) overlay.classList.remove('hidden');
+
+  try {
+    // Cache-bust to force fresh fetch
+    const bust = `&_=${Date.now()}`;
+    const res = await fetch(CSV_URL + bust);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    render(rows);
+    document.getElementById('ftDot').className = 'ft-dot';
+  } catch (err) {
+    document.getElementById('errMsg').textContent = `Could not fetch data: ${err.message}. Showing last available data.`;
+    errBanner.classList.add('show');
+    document.getElementById('ftDot').className = 'ft-dot err';
+    document.getElementById('ftStatus').textContent = 'Fetch failed — check connection';
+  } finally {
+    overlay.classList.add('hidden');
+    refreshBtn.classList.remove('loading');
+  }
+}
+
+// ─── FULLSCREEN ───────────────────────────────────────────────────────────────
 function toggleFS() {
   const w = document.getElementById('wrapper');
   if (!document.fullscreenElement && !document.webkitFullscreenElement) {
@@ -381,6 +541,9 @@ function updateBtn() {
     ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg> Exit full screen`
     : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Full screen`;
 }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadData();
 </script>
 </body>
 </html>
