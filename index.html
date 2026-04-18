@@ -140,20 +140,6 @@ tbody tr:hover td { background: #f6f8fb; }
 .avg-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; }
 .avg-val { font-size: 22px; font-weight: 500; }
 
-.prog-item { margin-bottom: 8px; }
-.prog-item:last-child { margin-bottom: 0; }
-.prog-hdr { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
-.prog-lbl { color: #666; }
-.prog-v { font-weight: 500; color: #222; }
-.prog-bar { height: 5px; background: #eef0f5; border-radius: 3px; overflow: hidden; position: relative; }
-.prog-fill { height: 100%; border-radius: 3px; transition: width 1.1s cubic-bezier(0.22,1,0.36,1); }
-.prog-bar::after {
-  content:''; position:absolute; top:0; left:-60%; width:40%; height:100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-  animation: shimmer 2.4s infinite 1.2s;
-}
-@keyframes shimmer { 0%{left:-60%} 100%{left:120%} }
-
 .ft {
   margin-top: 12px; font-size: 10px; color: #888;
   border-top: 0.5px solid rgba(0,0,0,0.08);
@@ -293,11 +279,6 @@ tbody tr:hover td { background: #f6f8fb; }
     </div>
 
     <div class="right-col">
-      <div class="card">
-        <div class="card-ttl">Annual outturn progress</div>
-        <div id="progs"></div>
-      </div>
-
       <div class="card">
         <div class="card-ttl">Yard &amp; backlog</div>
         <div class="metric-box">
@@ -528,27 +509,6 @@ function render(rows) {
     coachBody.innerHTML += `<tr><td>${r.type}</td><td>${r.target.toLocaleString()}</td><td>${r.out}</td><td>${r.bal.toLocaleString()}</td></tr>`;
   });
   coachBody.innerHTML += `<tr class="tot"><td>Total</td><td>${totalTarget.toLocaleString()}</td><td>${totalOut}</td><td>${totalBal.toLocaleString()}</td></tr>`;
-
-  // ── Progress bars ─────────────────────────────────────────────────────────
-  const progColors = ['#0d2340','#1a3a5c','#c9a84c','#1d6e5a','#a32d2d','#0d2340'];
-  const progData = [
-    ...coaches.slice(0,5).map((c,i)=>({label:c.type, target:c.target, out:c.out, color:progColors[i]})),
-    {label:`Total (${totalTarget.toLocaleString()})`, target:totalTarget, out:totalOut, color:'#0d2340'},
-  ];
-  const pc = document.getElementById('progs');
-  pc.innerHTML = '';
-  progData.forEach(p => {
-    const pct = Math.max(0.4,(p.out/(p.target||1))*100).toFixed(2);
-    pc.innerHTML += `<div class="prog-item">
-      <div class="prog-hdr"><span class="prog-lbl">${p.label}</span><span class="prog-v">${p.out}/${p.target.toLocaleString()}</span></div>
-      <div class="prog-bar"><div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div></div>
-    </div>`;
-  });
-  requestAnimationFrame(()=>{
-    document.querySelectorAll('.prog-fill').forEach(el=>{
-      setTimeout(()=>{ el.style.width = el.dataset.w+'%'; },300);
-    });
-  });
 
   // ── Yard & backlog ────────────────────────────────────────────────────────
   document.getElementById('yardReady').textContent = yardReady;
