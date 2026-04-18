@@ -312,15 +312,19 @@ tr:last-child td { border-bottom: none; }
 </div>
 
 <script>
-// ─── CONFIG ─────────────────────────────────────────────────────────────────
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRl_jE4aMJYmIC2xxHC2TABQshgcPffgqvXnvQdWS0mzPBxiqwi4BU1pTselF4eibEiVw0HDUpNEG6C/pub?gid=1620327917&single=true&output=csv';
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRl_jE4aMJYmIC2xxHC2TABQshgcPffgqvXnvQdWS0mzPBxiqwi4BU1pTselF4eibEiVw0HDUpNEG6C/pub?gid=1620327917&single=true&output=csv';
+const PROXIES = [
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://cors-anywhere.herokuapp.com/${u}`,
+];
 
-// ─── CSV PARSER (handles quoted commas) ─────────────────────────────────────
+// ─── CSV PARSER ───────────────────────────────────────────────────────────────
 function parseCSV(text) {
   const rows = [];
-  const lines = text.split(/\r?\n/);
-  for (const line of lines) {
-    if (!line.trim()) continue;
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) { rows.push([]); continue; }
     const cols = [];
     let cur = '', inQ = false;
     for (let i = 0; i < line.length; i++) {
@@ -335,111 +339,206 @@ function parseCSV(text) {
   return rows;
 }
 
-// ─── SAFE NUMBER ─────────────────────────────────────────────────────────────
+// ─── SAFE NUMBER (strips commas, parentheses like "187") ──────────────────────
 function n(v) {
-  const x = parseFloat(String(v).replace(/,/g, ''));
+  if (v === undefined || v === null) return 0;
+  // Strip anything inside parentheses e.g. "384 (24)" → "384"
+  const clean = String(v).replace(/\(.*?\)/g, '').replace(/,/g, '').trim();
+  const x = parseFloat(clean);
   return isNaN(x) ? 0 : x;
 }
 
-// ─── RENDER ──────────────────────────────────────────────────────────────────
-function render(data) {
-  /*
-    Expected CSV structure for sheet "2026-27":
-    Section markers in first column (case-insensitive):
+// ─── LAYOUT-AWARE RENDER ──────────────────────────────────────────────────────
+/*
+  The sheet "2026-27" is a SIDE-BY-SIDE layout (from screenshot):
 
-    SECTION: DAILY_LOG
-    Date, Shell, Furnishing, Despatch
-    <rows…>
+  LEFT side  (cols A–D):   Date | Shell | Furnishing | Despatched
+    Row 1  : Header row  "GM Outturn Position April 2026" or just column labels
+    Row 2  : "Date", "Shell", "Furnishing", "Despatched"
+    Rows 3+: daily data (date strings like "01.04.26")
+    ...blank rows...
+    Near bottom: "Month Total", totals
+                 "Year Total",  totals
+                 "AVG. Curr MTH/YR", avg values
 
-    SECTION: COACH_WISE
-    Coach Type, Target, Outturn, Balance
-    <rows…>
+  RIGHT side (cols F–I):   Coach | Target (Rake) | Outturn | Balanced
+    Row 1  : "Summary of Target, Production & Balanced Coach Position for 2026-27"
+    Row 2  : "Coach", "Target (Rake)", "Outturn", "Balanced"
+    Rows 3+: coach rows (MEMU, HS Spart, SPIC, TRAIN SET VB, Namo Bharat(AC),
+             LHB AC, Amrit Bharat AC, Banladesh AC, ACRA, RDSO,
+             LHB NAC, Amrit Bharat NAC, Bangladesh NAC, RA NAC, Total)
+    ...then below:
+    "Number of Ready Coaches in Yard"  | value  (col F+G area)
+    "Current Backlog of last year"     | value
 
-    SECTION: YARD
-    Ready in Yard, <val>
-    Backlog, <val>
+  Column indices (0-based) after CSV parse:
+    Left  : 0=Date, 1=Shell, 2=Furnishing, 3=Despatched
+    Right : 5=Coach, 6=Target(Rake), 7=Outturn, 8=Balanced
+            (columns E is spacer so right starts at col 5)
+*/
+function render(rows) {
+  const daily   = [];
+  const coaches = [];
+  let mthShell = 0, mthFurn = 0, mthDesp = 0;
+  let yrShell  = 0, yrFurn  = 0, yrDesp  = 0;
+  let avgShell = '', avgFurn = '', avgDesp = '';
+  let yardReady = 0, backlog = 0;
+  let posDate = '';
 
-    SECTION: META
-    Position Date, <val>
-    Avg Shell, <val>
-    Avg Furnishing, <val>
-    Avg Despatch, <val>
-  */
+  // Find column indices dynamically by scanning header row
+  let dateCol=0, shellCol=1, furnCol=2, despCol=3;
+  let coachCol=5, targetCol=6, outCol=7, balCol=8;
+  let headerFound = false;
 
-  let section = null;
-  const daily = [], coaches = [];
-  let yardVal = 0, backlogVal = 0;
-  let posDate = '', avgShell = 0, avgFurn = 0, avgDesp = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const r0 = (row[0]||'').trim().toUpperCase();
+    const r1 = (row[1]||'').trim().toUpperCase();
 
-  for (const row of data) {
-    const key = (row[0] || '').trim().toUpperCase();
+    // ── Detect header row for left table ──────────────────────────────────────
+    if (!headerFound && (r0 === 'DATE' || r0.includes('DATE'))) {
+      // Locate columns by header text
+      for (let c = 0; c < row.length; c++) {
+        const h = (row[c]||'').trim().toUpperCase();
+        if (h === 'DATE') dateCol = c;
+        else if (h === 'SHELL') shellCol = c;
+        else if (h.includes('FURNISH')) furnCol = c;
+        else if (h.includes('DESPATCH') || h.includes('DISPATCH')) despCol = c;
+        else if (h === 'COACH') coachCol = c;
+        else if (h.includes('TARGET')) targetCol = c;
+        else if (h.includes('OUTTURN') || h === 'OUT.') outCol = c;
+        else if (h.includes('BALANCE') || h.includes('BAL')) balCol = c;
+      }
+      headerFound = true;
 
-    // Section header detection
-    if (key === 'SECTION: DAILY_LOG' || key === 'DAILY_LOG') { section = 'daily'; continue; }
-    if (key === 'SECTION: COACH_WISE' || key === 'COACH_WISE') { section = 'coach'; continue; }
-    if (key === 'SECTION: YARD' || key === 'YARD') { section = 'yard'; continue; }
-    if (key === 'SECTION: META' || key === 'META') { section = 'meta'; continue; }
-    // Skip header rows
-    if (key === 'DATE' || key === 'COACH TYPE' || key === 'READY IN YARD' && section === 'yard' && row[1] === 'Value') continue;
-
-    if (section === 'daily' && row[0] && key !== 'TOTAL' && key !== 'TOTAL (APR)') {
-      daily.push({ date: row[0], shell: n(row[1]), furn: n(row[2]), desp: n(row[3]) });
+      // Also try to extract position date from a header cell
+      for (let c = 0; c < row.length; c++) {
+        const cell = (row[c]||'').trim();
+        // Look for a cell that has a date-like title in nearby rows
+        if (cell.toUpperCase().includes('APRIL') || cell.toUpperCase().includes('POSITION')) {
+          posDate = cell;
+        }
+      }
+      continue;
     }
-    if (section === 'coach' && row[0] && key !== 'TOTAL' && key !== 'COACH TYPE') {
-      coaches.push({ type: row[0], target: n(row[1]), out: n(row[2]), bal: n(row[3]) });
-    }
-    if (section === 'yard') {
-      if (key === 'READY IN YARD' || key === 'READY') yardVal = n(row[1]);
-      if (key === 'BACKLOG' || key === 'BACKLOG — PREV. YEAR') backlogVal = n(row[1]);
-    }
-    if (section === 'meta') {
-      if (key === 'POSITION DATE' || key === 'DATE') posDate = row[1] || '';
-      if (key === 'AVG SHELL' || key === 'SHELL AVG') avgShell = n(row[1]);
-      if (key === 'AVG FURNISHING' || key === 'FURNISHING AVG') avgFurn = n(row[1]);
-      if (key === 'AVG DESPATCH' || key === 'DESPATCH AVG') avgDesp = n(row[1]);
+
+    // ── Once header found, parse data rows ────────────────────────────────────
+    if (headerFound) {
+      const c0 = (row[dateCol]||'').trim();
+      const c0up = c0.toUpperCase();
+
+      // Daily date rows: value in dateCol looks like "01.04.26" or "1/4/26" etc.
+      if (c0 && /\d{1,2}[./]\d{1,2}[./]\d{2,4}/.test(c0)) {
+        daily.push({
+          date:  c0,
+          shell: n(row[shellCol]),
+          furn:  n(row[furnCol]),
+          desp:  n(row[despCol]),
+        });
+      }
+
+      // Month Total row
+      if (c0up.includes('MONTH') || c0up === 'MONTH TOTAL') {
+        mthShell = n(row[shellCol]);
+        mthFurn  = n(row[furnCol]);
+        mthDesp  = n(row[despCol]);
+      }
+
+      // Year Total row
+      if (c0up.includes('YEAR') || c0up === 'YEAR TOTAL') {
+        yrShell = n(row[shellCol]);
+        yrFurn  = n(row[furnCol]);
+        yrDesp  = n(row[despCol]);
+      }
+
+      // AVG row — format "6.3/6.3"  or just "6.3"
+      if (c0up.includes('AVG')) {
+        const parseAvg = v => {
+          const s = String(v||'').trim();
+          // take the first number before any slash
+          const m = s.match(/([\d.]+)/);
+          return m ? m[1] : s;
+        };
+        avgShell = parseAvg(row[shellCol]);
+        avgFurn  = parseAvg(row[furnCol]);
+        avgDesp  = parseAvg(row[despCol]);
+      }
+
+      // ── Right side: coach table ─────────────────────────────────────────────
+      const coachName = (row[coachCol]||'').trim();
+      const coachUp   = coachName.toUpperCase();
+
+      // Skip header/title rows on the right
+      if (coachName && coachUp !== 'COACH' && !coachUp.includes('SUMMARY') && !coachUp.includes('POSITION FOR')) {
+        // "Total" row — capture but add separately
+        if (coachUp === 'TOTAL') {
+          // handled via reduce later; skip adding to coaches array
+        } else if (coachName && n(row[targetCol]) > 0) {
+          coaches.push({
+            type:   coachName,
+            target: n(row[targetCol]),
+            out:    n(row[outCol]),
+            bal:    n(row[balCol]),
+          });
+        }
+      }
+
+      // ── Yard & backlog (right side, below coach table) ──────────────────────
+      // These rows have label in coachCol and value in targetCol or next col
+      if (coachUp.includes('READY COACH') || coachUp.includes('NUMBER OF READY')) {
+        // value might be in targetCol or targetCol+1
+        yardReady = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
+      }
+      if (coachUp.includes('BACKLOG')) {
+        backlog = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
+      }
     }
   }
 
-  // ── Totals from daily log ──
-  const totalShell = daily.reduce((s, r) => s + r.shell, 0);
-  const totalFurn  = daily.reduce((s, r) => s + r.furn,  0);
-  const totalDesp  = daily.reduce((s, r) => s + r.desp,  0);
+  // ── Fallbacks ─────────────────────────────────────────────────────────────
+  // If Month Total row wasn't explicitly found, sum from daily rows
+  if (!mthShell && daily.length) mthShell = daily.reduce((s,r)=>s+r.shell,0);
+  if (!mthFurn  && daily.length) mthFurn  = daily.reduce((s,r)=>s+r.furn, 0);
+  if (!mthDesp  && daily.length) mthDesp  = daily.reduce((s,r)=>s+r.desp, 0);
+  if (!yrShell) yrShell = mthShell;
+  if (!yrFurn)  yrFurn  = mthFurn;
+  if (!yrDesp)  yrDesp  = mthDesp;
+
   const wdays = daily.length || 1;
+  if (!avgShell) avgShell = (mthShell/wdays).toFixed(1);
+  if (!avgFurn)  avgFurn  = (mthFurn /wdays).toFixed(1);
+  if (!avgDesp)  avgDesp  = (mthDesp /wdays).toFixed(1);
 
-  // Fallback: compute averages if not in META
-  if (!avgShell) avgShell = +(totalShell / wdays).toFixed(1);
-  if (!avgFurn)  avgFurn  = +(totalFurn  / wdays).toFixed(1);
-  if (!avgDesp)  avgDesp  = +(totalDesp  / wdays).toFixed(1);
+  const totalTarget = coaches.reduce((s,r)=>s+r.target,0);
+  const totalOut    = coaches.reduce((s,r)=>s+r.out,   0);
+  const totalBal    = coaches.reduce((s,r)=>s+r.bal,   0) || (totalTarget - totalOut);
 
-  // ── Coach totals ──
-  const totalTarget = coaches.reduce((s, r) => s + r.target, 0);
-  const totalOut    = coaches.reduce((s, r) => s + r.out,    0);
-  const totalBal    = coaches.reduce((s, r) => s + r.bal,    0) || (totalTarget - totalOut);
-
-  // ── KPIs ──
-  document.getElementById('kpi-shell').textContent = totalShell;
-  document.getElementById('kpi-shell-sub').textContent = `Annual: ${totalShell} · Avg/day: ${avgShell}`;
-  document.getElementById('kpi-furn').textContent  = totalFurn;
-  document.getElementById('kpi-furn-sub').textContent  = `Annual: ${totalFurn} · Avg/day: ${avgFurn}`;
-  document.getElementById('kpi-desp').textContent  = totalDesp;
-  document.getElementById('kpi-desp-sub').textContent  = `Annual: ${totalDesp} · Avg/day: ${avgDesp}`;
-  document.getElementById('kpi-bal').textContent   = totalBal.toLocaleString();
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  document.getElementById('kpi-shell').textContent     = mthShell;
+  document.getElementById('kpi-shell-sub').textContent = `Annual: ${yrShell} · Avg/day: ${avgShell}`;
+  document.getElementById('kpi-furn').textContent      = mthFurn;
+  document.getElementById('kpi-furn-sub').textContent  = `Annual: ${yrFurn} · Avg/day: ${avgFurn}`;
+  document.getElementById('kpi-desp').textContent      = mthDesp;
+  document.getElementById('kpi-desp-sub').textContent  = `Annual: ${yrDesp} · Avg/day: ${avgDesp}`;
+  document.getElementById('kpi-bal').textContent       = totalBal.toLocaleString();
   document.getElementById('kpi-bal-sub').textContent   = `Target: ${totalTarget.toLocaleString()} · ${totalOut} Achieved`;
 
-  // ── Header date ──
-  document.getElementById('posDate').textContent = posDate || new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  // ── Header date ───────────────────────────────────────────────────────────
+  // Try to extract a clean date string; fallback to today
+  if (!posDate) {
+    posDate = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  document.getElementById('posDate').textContent = posDate;
 
-  // ── Daily log table ──
-  const logBody = document.getElementById('dailyLog');
+  // ── Daily log table (last 10 working days) ────────────────────────────────
+  const logBody  = document.getElementById('dailyLog');
   logBody.innerHTML = '';
-  const last10 = daily.slice(-10);
-  last10.forEach(r => {
+  daily.slice(-10).forEach(r => {
     logBody.innerHTML += `<tr><td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td></tr>`;
   });
-  // Total row — uses monthly totals from all daily data
-  logBody.innerHTML += `<tr class="tot"><td>Total (MTH)</td><td>${totalShell}</td><td>${totalFurn}</td><td>${totalDesp}</td></tr>`;
+  logBody.innerHTML += `<tr class="tot"><td>Total (MTH)</td><td>${mthShell}</td><td>${mthFurn}</td><td>${mthDesp}</td></tr>`;
 
-  // ── Coach-wise table ──
+  // ── Coach-wise table ──────────────────────────────────────────────────────
   const coachBody = document.getElementById('coachTable');
   coachBody.innerHTML = '';
   coaches.forEach(r => {
@@ -447,45 +546,39 @@ function render(data) {
   });
   coachBody.innerHTML += `<tr class="tot"><td>Total</td><td>${totalTarget.toLocaleString()}</td><td>${totalOut}</td><td>${totalBal.toLocaleString()}</td></tr>`;
 
-  // ── Progress bars ──
+  // ── Progress bars ─────────────────────────────────────────────────────────
   const progColors = ['#0d2340','#1a3a5c','#c9a84c','#1d6e5a','#a32d2d','#0d2340'];
-  const topCoaches = coaches.slice(0, 5);
   const progData = [
-    ...topCoaches.map((c, i) => ({ label: c.type, target: c.target, out: c.out, color: progColors[i] })),
-    { label: `Total (${totalTarget.toLocaleString()})`, target: totalTarget, out: totalOut, color: '#0d2340' }
+    ...coaches.slice(0,5).map((c,i)=>({label:c.type, target:c.target, out:c.out, color:progColors[i]})),
+    {label:`Total (${totalTarget.toLocaleString()})`, target:totalTarget, out:totalOut, color:'#0d2340'},
   ];
   const pc = document.getElementById('progs');
   pc.innerHTML = '';
   progData.forEach(p => {
-    const pct = Math.max(0.4, (p.out / (p.target || 1)) * 100).toFixed(2);
+    const pct = Math.max(0.4,(p.out/(p.target||1))*100).toFixed(2);
     pc.innerHTML += `<div class="prog-item">
-      <div class="prog-hdr">
-        <span class="prog-lbl">${p.label}</span>
-        <span class="prog-v">${p.out}/${p.target.toLocaleString()}</span>
-      </div>
-      <div class="prog-bar">
-        <div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div>
-      </div>
+      <div class="prog-hdr"><span class="prog-lbl">${p.label}</span><span class="prog-v">${p.out}/${p.target.toLocaleString()}</span></div>
+      <div class="prog-bar"><div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div></div>
     </div>`;
   });
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.prog-fill').forEach(el => {
-      setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 300);
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.prog-fill').forEach(el=>{
+      setTimeout(()=>{ el.style.width = el.dataset.w+'%'; },300);
     });
   });
 
-  // ── Yard & backlog ──
-  document.getElementById('yardReady').textContent = yardVal;
-  document.getElementById('backlog').textContent   = backlogVal;
+  // ── Yard & backlog ────────────────────────────────────────────────────────
+  document.getElementById('yardReady').textContent = yardReady;
+  document.getElementById('backlog').textContent   = backlog;
 
-  // ── Averages ──
+  // ── Averages ──────────────────────────────────────────────────────────────
   document.getElementById('avg-shell').textContent = avgShell;
   document.getElementById('avg-furn').textContent  = avgFurn;
   document.getElementById('avg-desp').textContent  = avgDesp;
 
-  // ── Footer status ──
+  // ── Footer ────────────────────────────────────────────────────────────────
   const now = new Date();
-  document.getElementById('ftStatus').textContent = `Last refreshed: ${now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })}`;
+  document.getElementById('ftStatus').textContent = `Last refreshed: ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
   document.getElementById('ftDot').className = 'ft-dot';
 }
 
@@ -498,21 +591,29 @@ async function loadData() {
   refreshBtn.classList.add('loading');
   errBanner.classList.remove('show');
 
-  // Show overlay only on first load (no data yet)
   const hasData = document.getElementById('dailyLog').children.length > 0;
   if (!hasData) overlay.classList.remove('hidden');
 
   try {
-    // Cache-bust to force fresh fetch
-    const bust = `&_=${Date.now()}`;
-    const res = await fetch(CSV_URL + bust);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const rows = parseCSV(text);
-    render(rows);
-    document.getElementById('ftDot').className = 'ft-dot';
+    const srcUrl = SHEET_CSV + `&_=${Date.now()}`;
+    let text = null, lastErr = null;
+
+    for (const proxy of PROXIES) {
+      try {
+        const res = await fetch(proxy(srcUrl), { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const t = await res.text();
+        if (t.trim().startsWith('<')) throw new Error('Got HTML instead of CSV');
+        text = t;
+        break;
+      } catch (e) { lastErr = e; }
+    }
+
+    if (!text) throw lastErr || new Error('All proxies failed');
+    render(parseCSV(text));
+    errBanner.classList.remove('show');
   } catch (err) {
-    document.getElementById('errMsg').textContent = `Could not fetch data: ${err.message}. Showing last available data.`;
+    document.getElementById('errMsg').textContent = `Could not fetch data: ${err.message}`;
     errBanner.classList.add('show');
     document.getElementById('ftDot').className = 'ft-dot err';
     document.getElementById('ftStatus').textContent = 'Fetch failed — check connection';
