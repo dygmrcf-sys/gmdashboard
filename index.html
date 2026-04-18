@@ -455,10 +455,12 @@ function render(rows) {
           coaches.push({ type: coachName, target: n(row[targetCol]), out: n(row[outCol]), bal: n(row[balCol]) });
         }
       }
-      if (coachUp.includes('READY COACH') || coachUp.includes('NUMBER OF READY')) {
+      
+      // MODIFIED: Specific header checks for Yard and Backlog
+      if (coachUp.includes('NUMBER OF READY COACHES IN YARD')) {
         yardReady = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
       }
-      if (coachUp.includes('BACKLOG')) {
+      if (coachUp.includes('CURRENT BACKLOG OF LAST YEAR')) {
         backlog = n(row[targetCol]) || n(row[targetCol+1]) || n(row[coachCol+1]);
       }
     }
