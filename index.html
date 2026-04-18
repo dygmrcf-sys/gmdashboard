@@ -1,92 +1,146 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GM Production Outturn Dashboard — RCF Kapurthala</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-#fsBtn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,0.12); border: 0.5px solid rgba(255,255,255,0.3);
-  border-radius: var(--border-radius-md); padding: 4px 10px;
-  color: rgba(255,255,255,0.85); font-size: 11px; cursor: pointer;
-  font-family: var(--font-sans); letter-spacing: 0.5px; transition: background 0.2s;
-}
-#fsBtn:hover { background: rgba(255,255,255,0.22); }
-.db { font-family: var(--font-sans); }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; padding: 16px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+.db { font-family: system-ui, -apple-system, sans-serif; padding: 2px 0 12px; }
+
 .hdr {
-  background: #0d2340; border-radius: var(--border-radius-lg);
-  padding: 12px 20px; margin-bottom: 12px;
+  background: #0d2340;
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 12px;
   display: flex; align-items: center; justify-content: space-between;
 }
-.hdr-l .org { font-size: 10px; letter-spacing: 2px; color: #e8d49e; text-transform: uppercase; }
-.hdr-l h1 { font-size: 17px; color: #fff; font-weight: 500; margin: 1px 0; }
-.hdr-l .sub { font-size: 11px; color: rgba(255,255,255,0.5); }
-.hdr-r { display: flex; align-items: center; gap: 14px; }
-.hdr-r .dblock { text-align: right; }
-.hdr-r .dlbl { font-size: 10px; color: #e8d49e; letter-spacing: 1.2px; text-transform: uppercase; }
-.hdr-r .dval { font-size: 15px; color: #fff; font-weight: 500; }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 10px; }
+.hdr-l .org { font-size: 10px; letter-spacing: 2px; color: #e8d49e; text-transform: uppercase; margin-bottom: 2px; }
+.hdr-l h1 { font-size: 16px; color: #fff; font-weight: 500; margin: 0 0 2px; }
+.hdr-l .sub { font-size: 11px; color: rgba(255,255,255,0.45); }
+.hdr-r { display: flex; align-items: center; gap: 16px; }
+.dblock { text-align: right; }
+.dlbl { font-size: 10px; color: #e8d49e; letter-spacing: 1.2px; text-transform: uppercase; }
+.dval { font-size: 14px; color: #fff; font-weight: 500; margin-top: 1px; }
+
+#fsBtn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.1); border: 0.5px solid rgba(255,255,255,0.25);
+  border-radius: 8px; padding: 5px 10px;
+  color: rgba(255,255,255,0.8); font-size: 11px; cursor: pointer;
+  font-family: inherit; letter-spacing: 0.4px;
+}
+#fsBtn:hover { background: rgba(255,255,255,0.18); }
+
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
 .kpi {
-  background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: var(--border-radius-md);
-  padding: 10px 14px; border-left: 3px solid transparent;
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid transparent;
 }
 .kpi.n { border-left-color: #0d2340; }
 .kpi.g { border-left-color: #c9a84c; }
 .kpi.t { border-left-color: #1d6e5a; }
 .kpi.r { border-left-color: #a32d2d; }
-.kpi-lbl { font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-.kpi-val { font-size: 26px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
-.kpi-sub { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
-.body { display: grid; grid-template-columns: 1.1fr 0.85fr 0.7fr; gap: 10px; }
+.kpi-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.kpi-val { font-size: 28px; font-weight: 500; color: #111; line-height: 1; }
+.kpi-sub { font-size: 10px; color: #888; margin-top: 3px; }
+
+.body { display: grid; grid-template-columns: 1.1fr 0.9fr 0.65fr; gap: 10px; align-items: start; }
+
 .card {
-  background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: var(--border-radius-lg); padding: 12px 14px;
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
 }
 .card-ttl {
   font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
-  color: var(--color-text-secondary); font-weight: 500;
-  margin-bottom: 8px; padding-bottom: 6px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  color: #666; font-weight: 500;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
 }
+
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
-  color: var(--color-text-secondary); font-weight: 500;
-  padding: 3px 5px; text-align: center;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  color: #666; font-weight: 500;
+  padding: 4px 6px; text-align: center;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08);
 }
 th:first-child { text-align: left; }
-td { padding: 4px 5px; border-bottom: 0.5px solid var(--color-border-tertiary); text-align: center; font-size: 11.5px; color: var(--color-text-primary); }
+td {
+  padding: 5px 6px;
+  border-bottom: 0.5px solid rgba(0,0,0,0.06);
+  text-align: center; font-size: 12px;
+  color: #222;
+}
 td:first-child { text-align: left; font-weight: 500; font-size: 11px; }
 tr:last-child td { border-bottom: none; }
-.tot td { background: var(--color-background-secondary); font-weight: 500; }
-.chart-wrap { position: relative; width: 100%; height: 130px; margin-top: 8px; }
+.tot td {
+  background: #f6f8fb;
+  font-weight: 500; font-size: 12px;
+}
+
+.chart-wrap { position: relative; width: 100%; height: 130px; margin-top: 12px; }
+.legend { display: flex; gap: 14px; margin-top: 8px; }
+.legend span { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #666; }
+.legend b { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
+
 .right-col { display: flex; flex-direction: column; gap: 10px; }
-.mbox { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
-.mbox.amb { background: #fff8ee; }
-.mbox-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); }
-.mbox.amb .mbox-lbl { color: #633806; }
-.mbox-val { font-size: 28px; font-weight: 500; }
-.mbox.amb .mbox-val { color: #ba7517; }
-.mbox-sub { font-size: 10px; color: var(--color-text-secondary); margin-top: 1px; }
-.mbox.amb .mbox-sub { color: #633806; }
-.avg-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); margin-bottom: 6px; }
+
+.metric-box {
+  background: #f6f8fb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.metric-box:last-child { margin-bottom: 0; }
+.metric-box.warn { background: #fff8ee; }
+.mb-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #666; }
+.metric-box.warn .mb-lbl { color: #633806; }
+.mb-sub { font-size: 10px; color: #888; margin-top: 2px; }
+.metric-box.warn .mb-sub { color: #633806; }
+.mb-val { font-size: 28px; font-weight: 500; color: #222; }
+.metric-box.warn .mb-val { color: #ba7517; }
+
+.avg-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 10px;
+  background: #f6f8fb;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
 .avg-row:last-child { margin-bottom: 0; }
-.avg-lbl { font-size: 10px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.8px; }
+.avg-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; }
 .avg-val { font-size: 22px; font-weight: 500; }
-.prog-item { margin-bottom: 7px; }
-.prog-hdr { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; }
-.prog-lbl { color: var(--color-text-secondary); }
-.prog-v { font-weight: 500; color: var(--color-text-primary); }
-.prog-bar { height: 5px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+
+.prog-item { margin-bottom: 8px; }
+.prog-item:last-child { margin-bottom: 0; }
+.prog-hdr { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+.prog-lbl { color: #666; }
+.prog-v { font-weight: 500; color: #222; }
+.prog-bar { height: 4px; background: #eef0f5; border-radius: 3px; overflow: hidden; }
 .prog-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
-.ft { margin-top: 10px; font-size: 10px; color: var(--color-text-secondary); border-top: 0.5px solid var(--color-border-tertiary); padding-top: 8px; display: flex; justify-content: space-between; }
+
+.ft {
+  margin-top: 12px; font-size: 10px; color: #888;
+  border-top: 0.5px solid rgba(0,0,0,0.08);
+  padding-top: 8px; display: flex; justify-content: space-between;
+}
 
 #wrapper:fullscreen .db,
 #wrapper:-webkit-full-screen .db { padding: 16px; }
 #wrapper:fullscreen,
-#wrapper:-webkit-full-screen { background: var(--color-background-tertiary, #f6f8fb); overflow-y: auto; }
+#wrapper:-webkit-full-screen { background: #f6f8fb; overflow-y: auto; }
 </style>
+</head>
+<body>
 
 <h2 class="sr-only">GM Production Outturn Dashboard — Rail Coach Factory Kapurthala, position as of 15 April 2026</h2>
 
@@ -105,7 +159,7 @@ tr:last-child td { border-bottom: none; }
         <div class="dval">15 April 2026</div>
       </div>
       <button id="fsBtn" onclick="toggleFS()">
-        <svg id="fsIco" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        <svg id="fsIco" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         Full screen
       </button>
     </div>
@@ -136,35 +190,35 @@ tr:last-child td { border-bottom: none; }
 
   <div class="body">
 
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div class="card">
-        <div class="card-ttl">Daily production log — April 2026</div>
-        <table>
-          <thead><tr><th>Date</th><th>Shell</th><th>Furn.</th><th>Desp.</th></tr></thead>
-          <tbody>
-            <tr><td>01 Apr</td><td>1</td><td>1</td><td>0</td></tr>
-            <tr><td>02 Apr</td><td>1</td><td>2</td><td>15</td></tr>
-            <tr><td>03 Apr</td><td>6</td><td>1</td><td>12</td></tr>
-            <tr><td>04 Apr</td><td>3</td><td>3</td><td>0</td></tr>
-            <tr><td>06 Apr</td><td>5</td><td>1</td><td>30</td></tr>
-            <tr><td>07 Apr</td><td>6</td><td>1</td><td>0</td></tr>
-            <tr><td>08 Apr</td><td>7</td><td>0</td><td>0</td></tr>
-            <tr><td>09 Apr</td><td>5</td><td>0</td><td>17</td></tr>
-            <tr><td>10 Apr</td><td>8</td><td>1</td><td>0</td></tr>
-            <tr><td>11 Apr</td><td>8</td><td>0</td><td>15</td></tr>
-            <tr><td>13 Apr</td><td>9</td><td>1</td><td>0</td></tr>
-            <tr><td>15 Apr</td><td>4</td><td>0</td><td>13</td></tr>
-            <tr class="tot"><td>Total</td><td>63</td><td>11</td><td>102</td></tr>
-          </tbody>
-        </table>
-        <div class="chart-wrap">
-          <canvas id="dc" role="img" aria-label="Daily production bar chart for April 2026 showing shell, furnishing, and despatch">Daily shell, furnishing, despatch production April 2026.</canvas>
-        </div>
-        <div style="display:flex;gap:14px;margin-top:6px;">
-          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;background:#0d2340;display:inline-block;"></span>Shell</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;background:#c9a84c;display:inline-block;"></span>Furnishing</span>
-          <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-text-secondary);"><span style="width:9px;height:9px;border-radius:2px;background:#1d6e5a;display:inline-block;"></span>Despatch</span>
-        </div>
+    <div class="card">
+      <div class="card-ttl">Daily production log — April 2026</div>
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Shell</th><th>Furn.</th><th>Desp.</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>01 Apr</td><td>1</td><td>1</td><td>0</td></tr>
+          <tr><td>02 Apr</td><td>1</td><td>2</td><td>15</td></tr>
+          <tr><td>03 Apr</td><td>6</td><td>1</td><td>12</td></tr>
+          <tr><td>04 Apr</td><td>3</td><td>3</td><td>0</td></tr>
+          <tr><td>06 Apr</td><td>5</td><td>1</td><td>30</td></tr>
+          <tr><td>07 Apr</td><td>6</td><td>1</td><td>0</td></tr>
+          <tr><td>08 Apr</td><td>7</td><td>0</td><td>0</td></tr>
+          <tr><td>09 Apr</td><td>5</td><td>0</td><td>17</td></tr>
+          <tr><td>10 Apr</td><td>8</td><td>1</td><td>0</td></tr>
+          <tr><td>11 Apr</td><td>8</td><td>0</td><td>15</td></tr>
+          <tr><td>13 Apr</td><td>9</td><td>1</td><td>0</td></tr>
+          <tr><td>15 Apr</td><td>4</td><td>0</td><td>13</td></tr>
+          <tr class="tot"><td>Total</td><td>63</td><td>11</td><td>102</td></tr>
+        </tbody>
+      </table>
+      <div class="chart-wrap">
+        <canvas id="dc" role="img" aria-label="Grouped bar chart of daily shell, furnishing, and despatch production for April 2026">Shell ranged 1–9, furnishing 0–3, despatch 0–30 per day.</canvas>
+      </div>
+      <div class="legend">
+        <span><b style="background:#0d2340;"></b>Shell</span>
+        <span><b style="background:#c9a84c;"></b>Furnishing</span>
+        <span><b style="background:#1d6e5a;"></b>Despatch</span>
       </div>
     </div>
 
@@ -196,17 +250,25 @@ tr:last-child td { border-bottom: none; }
         <div class="card-ttl">Annual outturn progress</div>
         <div id="progs"></div>
       </div>
+
       <div class="card">
         <div class="card-ttl">Yard &amp; backlog</div>
-        <div class="mbox" style="margin-bottom:8px;">
-          <div><div class="mbox-lbl">Ready in yard</div><div class="mbox-sub">Awaiting despatch</div></div>
-          <div class="mbox-val" style="color:#1d6e5a;">38</div>
+        <div class="metric-box">
+          <div>
+            <div class="mb-lbl">Ready in yard</div>
+            <div class="mb-sub">Awaiting despatch</div>
+          </div>
+          <div class="mb-val" style="color:#1d6e5a;">38</div>
         </div>
-        <div class="mbox amb">
-          <div><div class="mbox-lbl">Backlog — prev. year</div><div class="mbox-sub">Carried forward</div></div>
-          <div class="mbox-val">94</div>
+        <div class="metric-box warn">
+          <div>
+            <div class="mb-lbl">Backlog — prev. year</div>
+            <div class="mb-sub">Carried forward</div>
+          </div>
+          <div class="mb-val">94</div>
         </div>
       </div>
+
       <div class="card">
         <div class="card-ttl">MTH avg per working day</div>
         <div class="avg-row">
@@ -241,17 +303,35 @@ new Chart(document.getElementById('dc'), {
   data: {
     labels: ['01','02','03','04','06','07','08','09','10','11','13','15'],
     datasets: [
-      { label: 'Shell',      data: [1,1,6,3,5,6,7,5,8,8,9,4], backgroundColor: '#0d2340', borderRadius: 2 },
-      { label: 'Furnishing', data: [1,2,1,3,1,1,0,0,1,0,1,0], backgroundColor: '#c9a84c', borderRadius: 2 },
-      { label: 'Despatch',   data: [0,15,12,0,30,0,0,17,0,15,0,13], backgroundColor: '#1d6e5a', borderRadius: 2 }
+      { label: 'Shell',      data: [1,1,6,3,5,6,7,5,8,8,9,4], backgroundColor: '#0d2340', borderRadius: 2, borderSkipped: false },
+      { label: 'Furnishing', data: [1,2,1,3,1,1,0,0,1,0,1,0], backgroundColor: '#c9a84c', borderRadius: 2, borderSkipped: false },
+      { label: 'Despatch',   data: [0,15,12,0,30,0,0,17,0,15,0,13], backgroundColor: '#1d6e5a', borderRadius: 2, borderSkipped: false }
     ]
   },
   options: {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: {} },
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(13,35,64,0.92)',
+        titleFont: { size: 11 },
+        bodyFont: { size: 11 },
+        padding: 8,
+        cornerRadius: 6
+      }
+    },
     scales: {
-      x: { ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: false }, grid: { display: false } },
-      y: { ticks: { font: { size: 9 } }, grid: { color: '#eef0f5' }, border: { display: false } }
+      x: {
+        ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: false, color: '#888' },
+        grid: { display: false },
+        border: { display: false }
+      },
+      y: {
+        ticks: { font: { size: 9 }, color: '#888', stepSize: 10 },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+        border: { display: false }
+      }
     }
   }
 });
@@ -266,10 +346,15 @@ const progData = [
 ];
 const pc = document.getElementById('progs');
 progData.forEach(p => {
-  const pct = Math.max(0.3, (p.out / p.target) * 100).toFixed(2);
+  const pct = Math.max(0.4, (p.out / p.target) * 100).toFixed(2);
   pc.innerHTML += `<div class="prog-item">
-    <div class="prog-hdr"><span class="prog-lbl">${p.label}</span><span class="prog-v">${p.out}/${p.target.toLocaleString()}</span></div>
-    <div class="prog-bar"><div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div></div>
+    <div class="prog-hdr">
+      <span class="prog-lbl">${p.label}</span>
+      <span class="prog-v">${p.out}/${p.target.toLocaleString()}</span>
+    </div>
+    <div class="prog-bar">
+      <div class="prog-fill" data-w="${pct}" style="width:0%;background:${p.color};"></div>
+    </div>
   </div>`;
 });
 requestAnimationFrame(() => {
@@ -280,8 +365,6 @@ requestAnimationFrame(() => {
 
 function toggleFS() {
   const w = document.getElementById('wrapper');
-  const btn = document.getElementById('fsBtn');
-  const ico = document.getElementById('fsIco');
   if (!document.fullscreenElement && !document.webkitFullscreenElement) {
     const req = w.requestFullscreen || w.webkitRequestFullscreen;
     if (req) req.call(w);
@@ -294,9 +377,10 @@ document.addEventListener('fullscreenchange', updateBtn);
 document.addEventListener('webkitfullscreenchange', updateBtn);
 function updateBtn() {
   const inFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  const btn = document.getElementById('fsBtn');
-  btn.innerHTML = inFS
-    ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg> Exit full screen`
-    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Full screen`;
+  document.getElementById('fsBtn').innerHTML = inFS
+    ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg> Exit full screen`
+    : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Full screen`;
 }
 </script>
+</body>
+</html>
