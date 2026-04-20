@@ -6,203 +6,271 @@
 <title>GM Production Outturn Dashboard — RCF Kapurthala</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, -apple-system, sans-serif; background: #f6f8fb; padding: 16px; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #eef2f7; padding: 16px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 .db { font-family: system-ui, -apple-system, sans-serif; padding: 2px 0 12px; }
 
+/* ── HEADER ─────────────────────────────────────────────────────────── */
 .hdr {
-  background: #0d2340;
-  border-radius: 12px;
-  padding: 14px 20px;
-  margin-bottom: 12px;
+  background: linear-gradient(135deg, #0a1628 0%, #1a3a6b 60%, #1e4d8c 100%);
+  border-radius: 14px;
+  padding: 16px 22px;
+  margin-bottom: 14px;
   display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 24px rgba(10,22,40,0.18);
+  position: relative; overflow: hidden;
 }
-.hdr-l { flex: 1; }
-.hdr-l .org { font-size: 10px; letter-spacing: 2px; color: #e8d49e; text-transform: uppercase; margin-bottom: 2px; }
-.hdr-l h1 { font-size: 16px; color: #fff; font-weight: 500; margin: 0 0 2px; }
-.hdr-l .sub { font-size: 11px; color: rgba(255,255,255,0.45); }
-.hdr-r { display: flex; align-items: center; gap: 16px; }
+.hdr::before {
+  content: '';
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 220px;
+  background: radial-gradient(ellipse at top right, rgba(100,180,255,0.09) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hdr-l .org {
+  font-size: 10px; letter-spacing: 2.5px; color: #f0c860;
+  text-transform: uppercase; margin-bottom: 3px; font-weight: 500;
+}
+.hdr-l h1 { font-size: 17px; color: #fff; font-weight: 600; margin: 0 0 3px; letter-spacing: 0.2px; }
+.hdr-l .sub { font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 0.4px; }
+.hdr-r { display: flex; align-items: center; gap: 18px; }
 .dblock { text-align: right; }
-.dlbl { font-size: 10px; color: #e8d49e; letter-spacing: 1.2px; text-transform: uppercase; }
-.dval { font-size: 14px; color: #fff; font-weight: 500; margin-top: 1px; }
-
+.dlbl { font-size: 9px; color: #f0c860; letter-spacing: 1.5px; text-transform: uppercase; }
+.dval { font-size: 14px; color: #fff; font-weight: 600; margin-top: 2px; }
 .hdr-btns { display: flex; gap: 8px; align-items: center; }
-
 #fsBtn, #refreshBtn {
   display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(255,255,255,0.1); border: 0.5px solid rgba(255,255,255,0.25);
-  border-radius: 8px; padding: 5px 10px;
-  color: rgba(255,255,255,0.8); font-size: 11px; cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px; padding: 6px 12px;
+  color: rgba(255,255,255,0.85); font-size: 11px; cursor: pointer;
   font-family: inherit; letter-spacing: 0.4px;
-  transition: background 0.15s;
+  transition: all 0.2s;
 }
-#fsBtn:hover, #refreshBtn:hover { background: rgba(255,255,255,0.18); }
+#fsBtn:hover, #refreshBtn:hover {
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.35);
+}
 #refreshBtn.loading { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
 #refreshBtn.loading svg { animation: spin 0.8s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
+/* ── KPI CARDS ──────────────────────────────────────────────────────── */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
 .kpi {
   background: #fff;
-  border: 0.5px solid rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 12px 14px;
-  border-left: 3px solid transparent;
-  transition: transform 0.18s, box-shadow 0.18s;
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  position: relative; overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.kpi:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+.kpi:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.10); }
+.kpi::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  border-radius: 0 0 14px 14px;
 }
-.kpi.n { border-left-color: #0d2340; }
-.kpi.g { border-left-color: #c9a84c; }
-.kpi.t { border-left-color: #1d6e5a; }
-.kpi.r { border-left-color: #a32d2d; }
-.kpi-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-.kpi-val { font-size: 28px; font-weight: 500; color: #111; line-height: 1; }
+.kpi.n::after { background: linear-gradient(90deg, #1a3a6b, #3a70d4); }
+.kpi.g::after { background: linear-gradient(90deg, #d4950a, #f5c518); }
+.kpi.t::after { background: linear-gradient(90deg, #0f6e56, #1cb98a); }
+.kpi.r::after { background: linear-gradient(90deg, #a32d2d, #e05555); }
+.kpi-lbl {
+  font-size: 10px; color: #888; text-transform: uppercase;
+  letter-spacing: 1.2px; margin-bottom: 6px; font-weight: 500;
+}
+.kpi-val { font-size: 32px; font-weight: 700; color: #111; line-height: 1; }
+.kpi.n .kpi-val { color: #1a3a6b; }
+.kpi.g .kpi-val { color: #b07a08; }
+.kpi.t .kpi-val { color: #0f6e56; }
+.kpi.r .kpi-val { color: #a32d2d; }
 .kpi-val.counting { animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-@keyframes popIn { 0%{transform:scale(0.85);opacity:0.4} 100%{transform:scale(1);opacity:1} }
-.kpi-sub { font-size: 10px; color: #888; margin-top: 3px; }
+@keyframes popIn { 0%{transform:scale(0.8);opacity:0.3} 100%{transform:scale(1);opacity:1} }
+.kpi-sub { font-size: 10px; color: #aaa; margin-top: 5px; }
 
-.body { display: grid; grid-template-columns: 1.1fr 0.9fr 0.65fr; gap: 10px; align-items: start; }
+/* ── BODY LAYOUT ─────────────────────────────────────────────────────── */
+.body { display: grid; grid-template-columns: 1.1fr 0.9fr 0.65fr; gap: 12px; align-items: start; }
 
 .card {
   background: #fff;
-  border: 0.5px solid rgba(0,0,0,0.1);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 14px;
+  padding: 16px 18px;
   animation: fadeUp 0.4s ease both;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 .card:nth-child(1){animation-delay:0.05s}
 .card:nth-child(2){animation-delay:0.1s}
 
 .card-ttl {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
-  color: #666; font-weight: 500;
-  margin-bottom: 10px; padding-bottom: 8px;
-  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px;
+  color: #888; font-weight: 600;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  display: flex; align-items: center; gap: 6px;
+}
+.card-ttl::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 12px;
+  background: linear-gradient(180deg, #3a70d4, #1cb98a);
+  border-radius: 2px;
 }
 
+/* ── TABLES ────────────────────────────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 th {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
-  color: #666; font-weight: 500;
-  padding: 4px 6px; text-align: center;
-  border-bottom: 0.5px solid rgba(0,0,0,0.08);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+  color: #999; font-weight: 600;
+  padding: 5px 7px; text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  background: #fafbfc;
 }
-th:first-child { text-align: left; }
+th:first-child { text-align: left; border-radius: 6px 0 0 0; }
+th:last-child { border-radius: 0 6px 0 0; }
 td {
-  padding: 5px 6px;
-  border-bottom: 0.5px solid rgba(0,0,0,0.06);
+  padding: 6px 7px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
   text-align: center; font-size: 12px;
-  color: #222;
+  color: #333;
   transition: background 0.15s;
 }
 td:first-child { text-align: left; font-weight: 500; font-size: 11px; }
 tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: #f6f8fb; }
+tbody tr:hover td { background: #f4f7ff; }
 .tot td {
-  background: #f6f8fb;
-  font-weight: 500; font-size: 12px;
+  background: #f0f4ff;
+  font-weight: 700; font-size: 12px;
+  color: #1a3a6b;
 }
 
-.right-col { display: flex; flex-direction: column; gap: 10px; }
+/* ── LATEST ROW HIGHLIGHT ANIMATION ─────────────────────────────────── */
+@keyframes latestFlash {
+  0%   { background: #fff9c4; }
+  20%  { background: #fff3a0; }
+  50%  { background: #fffde0; }
+  100% { background: transparent; }
+}
+@keyframes latestPulse {
+  0%,100% { box-shadow: inset 3px 0 0 #f5c518; background: rgba(245,197,24,0.06); }
+  50%      { box-shadow: inset 3px 0 0 #e8a800; background: rgba(245,197,24,0.12); }
+}
+tbody tr.latest-row td {
+  animation: latestFlash 2.5s ease forwards, latestPulse 2s ease-in-out 2.5s infinite;
+  box-shadow: inset 3px 0 0 #f5c518;
+}
+tbody tr.latest-row td:first-child::after {
+  content: ' ●';
+  color: #e8a800;
+  font-size: 7px;
+  vertical-align: super;
+}
+
+/* ── RIGHT COLUMN ────────────────────────────────────────────────────── */
+.right-col { display: flex; flex-direction: column; gap: 12px; }
 
 .metric-box {
-  background: #f6f8fb;
-  border-radius: 8px;
-  padding: 10px 14px;
+  background: #f7f9ff;
+  border: 1px solid rgba(58,112,212,0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 8px;
-  transition: transform 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-.metric-box:hover { transform: translateX(2px); }
+.metric-box:hover { transform: translateX(2px); box-shadow: 0 2px 12px rgba(58,112,212,0.08); }
 .metric-box:last-child { margin-bottom: 0; }
-.metric-box.warn { background: #fff8ee; }
-.mb-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #666; }
-.metric-box.warn .mb-lbl { color: #633806; }
-.mb-sub { font-size: 10px; color: #888; margin-top: 2px; }
-.metric-box.warn .mb-sub { color: #633806; }
-.mb-val { font-size: 28px; font-weight: 500; color: #222; }
-.metric-box.warn .mb-val { color: #ba7517; }
+.metric-box.warn {
+  background: #fff8ed;
+  border-color: rgba(200,140,0,0.15);
+}
+.mb-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #666; font-weight: 600; }
+.metric-box.warn .mb-lbl { color: #7a4e00; }
+.mb-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
+.metric-box.warn .mb-sub { color: #a07020; }
+.mb-val { font-size: 30px; font-weight: 700; color: #1a3a6b; }
+.metric-box.warn .mb-val { color: #c88000; }
 
 .avg-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 7px 10px;
-  background: #f6f8fb;
+  padding: 8px 12px;
   border-radius: 8px;
   margin-bottom: 6px;
+  background: #f7f9ff;
+  border: 1px solid rgba(0,0,0,0.05);
   transition: background 0.15s;
 }
-.avg-row:hover { background: #eef0f5; }
+.avg-row:hover { background: #eef2ff; }
 .avg-row:last-child { margin-bottom: 0; }
-.avg-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; }
-.avg-val { font-size: 22px; font-weight: 500; }
+.avg-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
+.avg-val { font-size: 24px; font-weight: 700; }
 
+/* ── FOOTER ────────────────────────────────────────────────────────── */
 .ft {
-  margin-top: 12px; font-size: 10px; color: #888;
-  border-top: 0.5px solid rgba(0,0,0,0.08);
-  padding-top: 8px; display: flex; justify-content: space-between; align-items: center;
+  margin-top: 14px; font-size: 10px; color: #999;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  padding-top: 10px; display: flex; justify-content: space-between; align-items: center;
 }
 .ft-status { display: flex; align-items: center; gap: 6px; }
 .ft-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #1d6e5a;
+  width: 7px; height: 7px; border-radius: 50%; background: #1cb98a;
   animation: pulse 2s ease-in-out infinite;
 }
-.ft-dot.err { background: #a32d2d; animation: none; }
+.ft-dot.err { background: #e05555; animation: none; }
 @keyframes pulse {
-  0%,100%{ box-shadow: 0 0 0 0 rgba(29,110,90,0.5); }
-  50%{ box-shadow: 0 0 0 4px rgba(29,110,90,0); }
+  0%,100%{ box-shadow: 0 0 0 0 rgba(28,185,138,0.5); }
+  50%{ box-shadow: 0 0 0 5px rgba(28,185,138,0); }
 }
 
-/* Loading overlay */
+/* ── LOADING OVERLAY ─────────────────────────────────────────────────── */
 #loadOverlay {
-  position: fixed; inset: 0; background: rgba(246,248,251,0.82);
+  position: fixed; inset: 0; background: rgba(238,242,247,0.88);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   z-index: 999; gap: 12px;
 }
 #loadOverlay.hidden { display: none; }
 .ld-spinner {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   border: 3px solid #dde3ed;
-  border-top-color: #0d2340;
+  border-top-color: #1a3a6b;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
-.ld-txt { font-size: 12px; color: #555; }
+.ld-txt { font-size: 12px; color: #555; font-weight: 500; }
 
-/* Error banner */
+/* ── ERROR BANNER ────────────────────────────────────────────────────── */
 #errBanner {
-  background: #fff0f0; border: 0.5px solid #f5c6c6;
-  border-radius: 8px; padding: 10px 14px;
+  background: #fff0f0; border: 1px solid #f5c6c6;
+  border-radius: 10px; padding: 10px 14px;
   font-size: 11px; color: #a32d2d;
-  margin-bottom: 10px; display: none;
+  margin-bottom: 12px; display: none;
   align-items: center; gap: 8px;
 }
 #errBanner.show { display: flex; }
 
-/* ── FULLSCREEN: off-white background ── */
+/* ── FULLSCREEN ──────────────────────────────────────────────────────── */
 #wrapper:fullscreen,
 #wrapper:-webkit-full-screen,
 #wrapper:-moz-full-screen,
 #wrapper:-ms-fullscreen {
-  background: #f9f7f4 !important;
+  background: #eef2f7 !important;
   overflow-y: auto;
 }
 #wrapper:fullscreen .db,
 #wrapper:-webkit-full-screen .db,
 #wrapper:-moz-full-screen .db,
 #wrapper:-ms-fullscreen .db {
-  padding: 16px 48px;
-  background: #f9f7f4 !important;
+  padding: 20px 80px;     /* ← left/right margin in fullscreen */
+  background: #eef2f7 !important;
+  max-width: 1600px;
+  margin: 0 auto;
 }
-
-/* Force body background in fullscreen too */
-:-webkit-full-screen { background: #f9f7f4 !important; }
-:-moz-full-screen     { background: #f9f7f4 !important; }
-:-ms-fullscreen       { background: #f9f7f4 !important; }
-:fullscreen           { background: #f9f7f4 !important; }
+:-webkit-full-screen { background: #eef2f7 !important; }
+:-moz-full-screen     { background: #eef2f7 !important; }
+:-ms-fullscreen       { background: #eef2f7 !important; }
+:fullscreen           { background: #eef2f7 !important; }
 </style>
 </head>
 <body>
@@ -212,13 +280,11 @@ tbody tr:hover td { background: #f6f8fb; }
 <div id="wrapper">
 <div class="db">
 
-  <!-- Loading Overlay -->
   <div id="loadOverlay">
     <div class="ld-spinner"></div>
     <div class="ld-txt">Fetching data from Google Sheets…</div>
   </div>
 
-  <!-- Error Banner -->
   <div id="errBanner">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span id="errMsg">Could not fetch data.</span>
@@ -299,7 +365,7 @@ tbody tr:hover td { background: #f6f8fb; }
             <div class="mb-lbl">Ready in yard</div>
             <div class="mb-sub">Awaiting despatch</div>
           </div>
-          <div class="mb-val" id="yardReady" style="color:#1d6e5a;">—</div>
+          <div class="mb-val" id="yardReady">—</div>
         </div>
         <div class="metric-box warn">
           <div>
@@ -314,15 +380,15 @@ tbody tr:hover td { background: #f6f8fb; }
         <div class="card-ttl">MTH avg per working day</div>
         <div class="avg-row">
           <div class="avg-lbl">Shell</div>
-          <div class="avg-val" id="avg-shell" style="color:#0d2340;">—</div>
+          <div class="avg-val" id="avg-shell" style="color:#1a3a6b;">—</div>
         </div>
         <div class="avg-row">
           <div class="avg-lbl">Furnishing</div>
-          <div class="avg-val" id="avg-furn" style="color:#c9a84c;">—</div>
+          <div class="avg-val" id="avg-furn" style="color:#b07a08;">—</div>
         </div>
         <div class="avg-row">
           <div class="avg-lbl">Despatch</div>
-          <div class="avg-val" id="avg-desp" style="color:#1d6e5a;">—</div>
+          <div class="avg-val" id="avg-desp" style="color:#0f6e56;">—</div>
         </div>
       </div>
     </div>
@@ -341,7 +407,6 @@ tbody tr:hover td { background: #f6f8fb; }
 </div>
 
 <script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
 const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRl_jE4aMJYmIC2xxHC2TABQshgcPffgqvXnvQdWS0mzPBxiqwi4BU1pTselF4eibEiVw0HDUpNEG6C/pub?gid=1620327917&single=true&output=csv';
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -349,7 +414,22 @@ const PROXIES = [
   u => `https://cors-anywhere.herokuapp.com/${u}`,
 ];
 
-// ─── CSV PARSER ───────────────────────────────────────────────────────────────
+/* ── NEXT WORKING DAY (exclude Sunday = 0) ─────────────────────── */
+function nextWorkingDay(dateStr) {
+  // Parse a date like "April 2026" or a full date string from the sheet title
+  let base = new Date();
+  if (dateStr) {
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed)) base = parsed;
+  }
+  // Advance by 1 day, skip Sunday
+  const next = new Date(base);
+  next.setDate(next.getDate() + 1);
+  if (next.getDay() === 0) next.setDate(next.getDate() + 1); // skip Sunday
+  return next.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/* ── CSV PARSER ──────────────────────────────────────────────────── */
 function parseCSV(text) {
   const rows = [];
   for (const line of text.split(/\r?\n/)) {
@@ -368,8 +448,7 @@ function parseCSV(text) {
   return rows;
 }
 
-// ─── SAFE NUMBER ─────────────────────────────────────────────────────────────
-// Strips bracketed annotations like "(24)" or "()" and parses the leading number
+/* ── SAFE NUMBER ─────────────────────────────────────────────────── */
 function n(v) {
   if (v === undefined || v === null) return 0;
   const clean = String(v).replace(/\s*\(.*?\)/g, '').replace(/,/g, '').trim();
@@ -377,7 +456,7 @@ function n(v) {
   return isNaN(x) ? 0 : x;
 }
 
-// ─── ANIMATED COUNTER ────────────────────────────────────────────────────────
+/* ── ANIMATED COUNTER ────────────────────────────────────────────── */
 function animateCount(el, target, duration) {
   const start = performance.now();
   const from = parseFloat(el.textContent) || 0;
@@ -392,7 +471,7 @@ function animateCount(el, target, duration) {
   requestAnimationFrame(step);
 }
 
-// ─── LIVE CLOCK ───────────────────────────────────────────────────────────────
+/* ── LIVE CLOCK ──────────────────────────────────────────────────── */
 let clockRef = null;
 function startClock(baseLabel) {
   if (clockRef) clearInterval(clockRef);
@@ -404,301 +483,216 @@ function startClock(baseLabel) {
   clockRef = setInterval(tick, 1000);
 }
 
-// ─── MAIN RENDER ─────────────────────────────────────────────────────────────
-/*
-  Sheet layout (as seen in the attached screenshot):
-  ─────────────────────────────────────────────────────────────────────────────
-  Col index (0-based after CSV parse):
-    A=0  B=1      C=2           D=3          E=4(empty)
-    F=5  G=6      H=7           I=8          J=9(empty)
-    K=10 L=11
-
-  Row 0  (row 1 in sheet): Title "GM Outturn Position April 2026"  |  Coach summary title  |  K="Number of Ready Coaches in Yard"  L="Current Backlog of last year"
-  Row 1  (row 2): Headers: Date | Shell | Furnishing | Despatched  |  | Coach | Target(Rake) | Outturn | Balanced  | | <yard value> | <backlog value>
-  Rows 2-N (rows 3+): daily data rows  |  coach rows
-  ...
-  Second-to-last rows: "Month Total" | vals   and  "Year Total" | vals
-  Last data row: "AVG. Curr MTH/YR" | avg vals
-*/
+/* ── RENDER ──────────────────────────────────────────────────────── */
 function render(rows) {
-  const daily   = [];
-  const coaches = [];
+  const daily = [], coaches = [];
+  let mthShell=0,mthFurn=0,mthDesp=0,yrShell=0,yrFurn=0,yrDesp=0;
+  let avgShell='',avgFurn='',avgDesp='';
+  let yardReady=0,backlog=0,posDate='',lastDataDate='';
 
-  let mthShell = 0, mthFurn = 0, mthDesp = 0;
-  let yrShell  = 0, yrFurn  = 0, yrDesp  = 0;
-  let avgShell = '', avgFurn = '', avgDesp = '';
-  let yardReady = 0, backlog = 0;
-  let posDate = '';
-
-  // ── Step 1: locate header row (has "Date" in col 0 or col A) ──────────────
   let hdrRowIdx = -1;
   for (let i = 0; i < rows.length; i++) {
-    const c0 = (rows[i][0] || '').trim().toUpperCase();
-    const c1 = (rows[i][1] || '').trim().toUpperCase();
-    if (c0 === 'DATE' || c1 === 'DATE') { hdrRowIdx = i; break; }
-    // Also accept if row[0] contains "GM Outturn" — that is row 0 (title), skip
-    // Row with "Date","Shell","Furnishing","Despatched" is what we want
+    const c0 = (rows[i][0]||'').trim().toUpperCase();
+    if (c0==='DATE'||(rows[i][1]||'').trim().toUpperCase()==='DATE') { hdrRowIdx=i; break; }
   }
 
-  // ── Step 2: derive column indices from header row ─────────────────────────
-  let dateCol=0, shellCol=1, furnCol=2, despCol=3;
-  let coachCol=5, targetCol=6, outCol=7, balCol=8;
-  let yardCol=10, backlogCol=11; // K and L
+  let dateCol=0,shellCol=1,furnCol=2,despCol=3;
+  let coachCol=5,targetCol=6,outCol=7,balCol=8;
+  let yardCol=10,backlogCol=11;
 
-  if (hdrRowIdx >= 0) {
-    const hdr = rows[hdrRowIdx];
-    for (let c = 0; c < hdr.length; c++) {
-      const h = (hdr[c] || '').trim().toUpperCase();
-      if (h === 'DATE')                                     dateCol    = c;
-      else if (h === 'SHELL')                               shellCol   = c;
-      else if (h.includes('FURNISH'))                       furnCol    = c;
-      else if (h.includes('DESPATCH') || h.includes('DISPATCH')) despCol = c;
-      else if (h === 'COACH')                               coachCol   = c;
-      else if (h.includes('TARGET'))                        targetCol  = c;
-      else if (h.includes('OUTTURN') || h === 'OUT.')       outCol     = c;
-      else if (h.includes('BALANCE') || h === 'BALANCED' || h.includes('BAL')) balCol = c;
+  if (hdrRowIdx>=0) {
+    const hdr=rows[hdrRowIdx];
+    for (let c=0;c<hdr.length;c++) {
+      const h=(hdr[c]||'').trim().toUpperCase();
+      if (h==='DATE') dateCol=c;
+      else if (h==='SHELL') shellCol=c;
+      else if (h.includes('FURNISH')) furnCol=c;
+      else if (h.includes('DESPATCH')||h.includes('DISPATCH')) despCol=c;
+      else if (h==='COACH') coachCol=c;
+      else if (h.includes('TARGET')) targetCol=c;
+      else if (h.includes('OUTTURN')||h==='OUT.') outCol=c;
+      else if (h.includes('BALANCE')||h==='BALANCED'||h.includes('BAL')) balCol=c;
+    }
+    const hdrYard=n(rows[hdrRowIdx][yardCol]);
+    const hdrBack=n(rows[hdrRowIdx][backlogCol]);
+    if (hdrYard>0) yardReady=hdrYard;
+    if (hdrBack>0) backlog=hdrBack;
+    if (hdrRowIdx>0) {
+      const tr=rows[hdrRowIdx-1];
+      const tv=n(tr[yardCol]),tb=n(tr[backlogCol]);
+      if (tv>0) yardReady=tv;
+      if (tb>0) backlog=tb;
     }
 
-    // ── Step 3: extract yard & backlog from ROW ABOVE headers (row 1 in sheet = index hdrRowIdx-1)
-    //    OR from the same header row's K/L columns,
-    //    OR from a dedicated label row. Check multiple strategies:
-
-    // Strategy A: row index hdrRowIdx has K/L values directly (yard in col 10, backlog in col 11)
-    const hdrYard    = n(rows[hdrRowIdx][yardCol]);
-    const hdrBacklog = n(rows[hdrRowIdx][backlogCol]);
-    if (hdrYard > 0)    yardReady = hdrYard;
-    if (hdrBacklog > 0) backlog   = hdrBacklog;
-
-    // Strategy B: title row (hdrRowIdx - 1) — columns K/L
-    if (hdrRowIdx > 0) {
-      const titleRow = rows[hdrRowIdx - 1];
-      const tv = n(titleRow[yardCol]);
-      const tb = n(titleRow[backlogCol]);
-      if (tv > 0) yardReady = tv;
-      if (tb > 0) backlog   = tb;
-    }
-
-    // ── Step 4: extract posDate from title row (row 0 typically) ─────────────
-    const titleRow0 = rows[0] || [];
+    // Extract date from title row
+    const titleRow0=rows[0]||[];
     for (const cell of titleRow0) {
-      const s = (cell || '').trim();
-      // Matches "April 2026" style or "Position April 2026" etc.
+      const s=(cell||'').trim();
       if (/april|may|june|july|august|september|october|november|december|january|february|march/i.test(s)) {
-        posDate = s.replace(/.*?(?=(?:january|february|march|april|may|june|july|august|september|october|november|december))/i,'').trim();
+        posDate=s.replace(/.*?(?=(?:january|february|march|april|may|june|july|august|september|october|november|december))/i,'').trim();
         break;
       }
     }
   }
 
-  // ── Step 5: iterate data rows ─────────────────────────────────────────────
-  const dataStart = hdrRowIdx >= 0 ? hdrRowIdx + 1 : 2;
+  const dataStart=hdrRowIdx>=0?hdrRowIdx+1:2;
+  for (let i=dataStart;i<rows.length;i++) {
+    const row=rows[i];
+    const c0=(row[dateCol]||'').trim();
+    const c0up=c0.toUpperCase();
 
-  for (let i = dataStart; i < rows.length; i++) {
-    const row  = rows[i];
-    const c0   = (row[dateCol]  || '').trim();
-    const c0up = c0.toUpperCase();
-
-    // ── Daily data row: has a date pattern dd.mm.yy or dd/mm/yy ────────────
     if (/^\d{1,2}[./]\d{1,2}[./]\d{2,4}$/.test(c0)) {
-      daily.push({
-        date:  c0,
-        shell: n(row[shellCol]),
-        furn:  n(row[furnCol]),
-        desp:  n(row[despCol])
-      });
+      daily.push({date:c0,shell:n(row[shellCol]),furn:n(row[furnCol]),desp:n(row[despCol])});
+      lastDataDate=c0; // track the latest daily entry date
     }
-
-    // ── Month total row ──────────────────────────────────────────────────────
-    if (c0up.includes('MONTH')) {
-      mthShell = n(row[shellCol]);
-      mthFurn  = n(row[furnCol]);
-      mthDesp  = n(row[despCol]);
-    }
-
-    // ── Year total row ───────────────────────────────────────────────────────
-    if (c0up.includes('YEAR')) {
-      yrShell = n(row[shellCol]);
-      yrFurn  = n(row[furnCol]);
-      yrDesp  = n(row[despCol]);
-    }
-
-    // ── Average row (AVG. Curr MTH/YR) ───────────────────────────────────────
-    // Values like "5.6/5.6" — take the first part (current month)
+    if (c0up.includes('MONTH')) { mthShell=n(row[shellCol]);mthFurn=n(row[furnCol]);mthDesp=n(row[despCol]); }
+    if (c0up.includes('YEAR'))  { yrShell=n(row[shellCol]);yrFurn=n(row[furnCol]);yrDesp=n(row[despCol]); }
     if (c0up.includes('AVG')) {
-      const parseAvg = v => {
-        const s = String(v || '').trim();
-        // Handle "5.6/5.6" format — take first number
-        const slash = s.split('/');
-        const first = slash[0].match(/([\d.]+)/);
-        return first ? first[1] : s;
-      };
-      avgShell = parseAvg(row[shellCol]);
-      avgFurn  = parseAvg(row[furnCol]);
-      avgDesp  = parseAvg(row[despCol]);
+      const parseAvg=v=>{const s=String(v||'').trim();const slash=s.split('/');const first=slash[0].match(/([\d.]+)/);return first?first[1]:s;};
+      avgShell=parseAvg(row[shellCol]);avgFurn=parseAvg(row[furnCol]);avgDesp=parseAvg(row[despCol]);
     }
-
-    // ── Coach rows (right-side table, cols F–I) ────────────────────────────
-    const coachName = (row[coachCol] || '').trim();
-    const coachUp   = coachName.toUpperCase();
-
-    // Skip blank, header repeats, summary labels
-    if (
-      coachName &&
-      coachUp !== 'COACH' &&
-      coachUp !== 'TOTAL' &&
-      !coachUp.includes('SUMMARY') &&
-      !coachUp.includes('POSITION FOR') &&
-      !coachUp.includes('NUMBER OF READY') &&
-      !coachUp.includes('BACKLOG') &&
-      !coachUp.includes('CURRENT BACKLOG')
-    ) {
-      const tgt = n(row[targetCol]);
-      const out = n(row[outCol]);
-      const bal = n(row[balCol]);
-      // Only add if there is a meaningful target or outturn
-      if (tgt > 0 || out > 0) {
-        coaches.push({ type: coachName, target: tgt, out: out, bal: bal || (tgt - out) });
-      }
+    const coachName=(row[coachCol]||'').trim();
+    const coachUp=coachName.toUpperCase();
+    if (coachName&&coachUp!=='COACH'&&coachUp!=='TOTAL'&&!coachUp.includes('SUMMARY')&&!coachUp.includes('POSITION FOR')&&!coachUp.includes('NUMBER OF READY')&&!coachUp.includes('BACKLOG')&&!coachUp.includes('CURRENT BACKLOG')) {
+      const tgt=n(row[targetCol]),out=n(row[outCol]),bal=n(row[balCol]);
+      if (tgt>0||out>0) coaches.push({type:coachName,target:tgt,out:out,bal:bal||(tgt-out)});
     }
-
-    // ── Yard & backlog — also handle as labelled rows in left-side block ─────
-    if (coachUp.includes('NUMBER OF READY') || coachUp.includes('READY COACHES')) {
-      const v = n(row[coachCol + 1]);
-      if (v > 0) yardReady = v;
-    }
-    if (coachUp.includes('CURRENT BACKLOG') || coachUp.includes('BACKLOG OF LAST')) {
-      const v = n(row[coachCol + 1]);
-      if (v > 0) backlog = v;
-    }
+    if (coachUp.includes('NUMBER OF READY')||coachUp.includes('READY COACHES')){const v=n(row[coachCol+1]);if(v>0)yardReady=v;}
+    if (coachUp.includes('CURRENT BACKLOG')||coachUp.includes('BACKLOG OF LAST')){const v=n(row[coachCol+1]);if(v>0)backlog=v;}
   }
 
-  // ── Fallback totals if not in sheet ───────────────────────────────────────
-  if (!mthShell && daily.length) mthShell = daily.reduce((s, r) => s + r.shell, 0);
-  if (!mthFurn  && daily.length) mthFurn  = daily.reduce((s, r) => s + r.furn,  0);
-  if (!mthDesp  && daily.length) mthDesp  = daily.reduce((s, r) => s + r.desp,  0);
-  if (!yrShell) yrShell = mthShell;
-  if (!yrFurn)  yrFurn  = mthFurn;
-  if (!yrDesp)  yrDesp  = mthDesp;
+  if (!mthShell&&daily.length) mthShell=daily.reduce((s,r)=>s+r.shell,0);
+  if (!mthFurn&&daily.length)  mthFurn=daily.reduce((s,r)=>s+r.furn,0);
+  if (!mthDesp&&daily.length)  mthDesp=daily.reduce((s,r)=>s+r.desp,0);
+  if (!yrShell) yrShell=mthShell;
+  if (!yrFurn)  yrFurn=mthFurn;
+  if (!yrDesp)  yrDesp=mthDesp;
+  const wdays=daily.length||1;
+  if (!avgShell) avgShell=(mthShell/wdays).toFixed(1);
+  if (!avgFurn)  avgFurn=(mthFurn/wdays).toFixed(1);
+  if (!avgDesp)  avgDesp=(mthDesp/wdays).toFixed(1);
 
-  const wdays = daily.length || 1;
-  if (!avgShell) avgShell = (mthShell / wdays).toFixed(1);
-  if (!avgFurn)  avgFurn  = (mthFurn  / wdays).toFixed(1);
-  if (!avgDesp)  avgDesp  = (mthDesp  / wdays).toFixed(1);
+  const totalTarget=coaches.reduce((s,r)=>s+r.target,0);
+  const totalOut=coaches.reduce((s,r)=>s+r.out,0);
+  const totalBal=coaches.reduce((s,r)=>s+r.bal,0)||(totalTarget-totalOut);
 
-  const totalTarget = coaches.reduce((s, r) => s + r.target, 0);
-  const totalOut    = coaches.reduce((s, r) => s + r.out,    0);
-  const totalBal    = coaches.reduce((s, r) => s + r.bal,    0) || (totalTarget - totalOut);
+  // KPIs
+  animateCount(document.getElementById('kpi-shell'),mthShell,700);
+  document.getElementById('kpi-shell-sub').textContent=`Annual: ${yrShell} · Avg/day: ${avgShell}`;
+  animateCount(document.getElementById('kpi-furn'),mthFurn,750);
+  document.getElementById('kpi-furn-sub').textContent=`Annual: ${yrFurn} · Avg/day: ${avgFurn}`;
+  animateCount(document.getElementById('kpi-desp'),mthDesp,800);
+  document.getElementById('kpi-desp-sub').textContent=`Annual: ${yrDesp} · Avg/day: ${avgDesp}`;
+  animateCount(document.getElementById('kpi-bal'),totalBal,850);
+  document.getElementById('kpi-bal-sub').textContent=`Target: ${totalTarget.toLocaleString()} · ${totalOut} Achieved`;
 
-  // ── KPIs with animated counters ───────────────────────────────────────────
-  animateCount(document.getElementById('kpi-shell'), mthShell, 700);
-  document.getElementById('kpi-shell-sub').textContent = `Annual: ${yrShell} · Avg/day: ${avgShell}`;
+  // ── "Position as of" = next working day after latest sheet date ──
+  let posDateDisplay = '';
+  if (lastDataDate) {
+    // Parse dd.mm.yy or dd/mm/yyyy
+    const parts = lastDataDate.split(/[./]/);
+    if (parts.length === 3) {
+      const day=parseInt(parts[0],10), mon=parseInt(parts[1],10)-1;
+      let yr=parseInt(parts[2],10);
+      if (yr<100) yr+=2000;
+      const base = new Date(yr, mon, day);
+      const next = new Date(base);
+      next.setDate(next.getDate()+1);
+      if (next.getDay()===0) next.setDate(next.getDate()+1); // skip Sunday
+      posDateDisplay = next.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    }
+  }
+  if (!posDateDisplay && posDate) {
+    // Fallback: try to build from month/year text
+    posDateDisplay = nextWorkingDay(posDate);
+  }
+  if (!posDateDisplay) posDateDisplay = nextWorkingDay('');
+  document.getElementById('posDate').textContent = posDateDisplay;
 
-  animateCount(document.getElementById('kpi-furn'), mthFurn, 750);
-  document.getElementById('kpi-furn-sub').textContent  = `Annual: ${yrFurn} · Avg/day: ${avgFurn}`;
-
-  animateCount(document.getElementById('kpi-desp'), mthDesp, 800);
-  document.getElementById('kpi-desp-sub').textContent  = `Annual: ${yrDesp} · Avg/day: ${avgDesp}`;
-
-  animateCount(document.getElementById('kpi-bal'), totalBal, 850);
-  document.getElementById('kpi-bal-sub').textContent   = `Target: ${totalTarget.toLocaleString()} · ${totalOut} Achieved`;
-
-  // ── Header date ───────────────────────────────────────────────────────────
-  if (!posDate) posDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  document.getElementById('posDate').textContent = posDate;
-
-  // ── Daily log table (last 10 working days) ────────────────────────────────
-  const logBody = document.getElementById('dailyLog');
-  logBody.innerHTML = '';
-  daily.slice(-10).forEach(r => {
-    logBody.innerHTML += `<tr><td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td></tr>`;
+  // Daily log — last 10, highlight the latest row
+  const logBody=document.getElementById('dailyLog');
+  logBody.innerHTML='';
+  const slice=daily.slice(-10);
+  slice.forEach((r,idx)=>{
+    const isLatest=(idx===slice.length-1);
+    logBody.innerHTML+=`<tr${isLatest?' class="latest-row"':''}><td>${r.date}</td><td>${r.shell}</td><td>${r.furn}</td><td>${r.desp}</td></tr>`;
   });
-  logBody.innerHTML += `<tr class="tot"><td>Total (MTH)</td><td>${mthShell}</td><td>${mthFurn}</td><td>${mthDesp}</td></tr>`;
+  logBody.innerHTML+=`<tr class="tot"><td>Total (MTH)</td><td>${mthShell}</td><td>${mthFurn}</td><td>${mthDesp}</td></tr>`;
 
-  // ── Coach-wise table ──────────────────────────────────────────────────────
-  const coachBody = document.getElementById('coachTable');
-  coachBody.innerHTML = '';
-  coaches.forEach(r => {
-    coachBody.innerHTML += `<tr><td>${r.type}</td><td>${r.target.toLocaleString()}</td><td>${r.out}</td><td>${r.bal.toLocaleString()}</td></tr>`;
+  // Coach table — highlight latest (first non-zero outturn from bottom)
+  const coachBody=document.getElementById('coachTable');
+  coachBody.innerHTML='';
+  coaches.forEach(r=>{
+    coachBody.innerHTML+=`<tr><td>${r.type}</td><td>${r.target.toLocaleString()}</td><td>${r.out}</td><td>${r.bal.toLocaleString()}</td></tr>`;
   });
-  coachBody.innerHTML += `<tr class="tot"><td>Total</td><td>${totalTarget.toLocaleString()}</td><td>${totalOut}</td><td>${totalBal.toLocaleString()}</td></tr>`;
+  coachBody.innerHTML+=`<tr class="tot"><td>Total</td><td>${totalTarget.toLocaleString()}</td><td>${totalOut}</td><td>${totalBal.toLocaleString()}</td></tr>`;
 
-  // ── Yard & backlog ────────────────────────────────────────────────────────
-  document.getElementById('yardReady').textContent = yardReady || '—';
-  document.getElementById('backlog').textContent   = backlog   || '—';
+  document.getElementById('yardReady').textContent=yardReady||'—';
+  document.getElementById('backlog').textContent=backlog||'—';
+  document.getElementById('avg-shell').textContent=avgShell;
+  document.getElementById('avg-furn').textContent=avgFurn;
+  document.getElementById('avg-desp').textContent=avgDesp;
 
-  // ── Averages ──────────────────────────────────────────────────────────────
-  document.getElementById('avg-shell').textContent = avgShell;
-  document.getElementById('avg-furn').textContent  = avgFurn;
-  document.getElementById('avg-desp').textContent  = avgDesp;
-
-  // ── Footer with live clock ─────────────────────────────────────────────────
-  const refreshLabel = `Last refreshed: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  const refreshLabel=`Last refreshed: ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
   startClock(refreshLabel);
-  document.getElementById('ftDot').className = 'ft-dot';
+  document.getElementById('ftDot').className='ft-dot';
 }
 
-// ─── FETCH & LOAD ─────────────────────────────────────────────────────────────
+/* ── FETCH ───────────────────────────────────────────────────────── */
 async function loadData() {
-  const refreshBtn = document.getElementById('refreshBtn');
-  const overlay    = document.getElementById('loadOverlay');
-  const errBanner  = document.getElementById('errBanner');
-
+  const refreshBtn=document.getElementById('refreshBtn');
+  const overlay=document.getElementById('loadOverlay');
+  const errBanner=document.getElementById('errBanner');
   refreshBtn.classList.add('loading');
   errBanner.classList.remove('show');
-
-  const hasData = document.getElementById('dailyLog').children.length > 0;
+  const hasData=document.getElementById('dailyLog').children.length>0;
   if (!hasData) overlay.classList.remove('hidden');
-
   try {
-    const srcUrl = SHEET_CSV + `&_=${Date.now()}`;
-    let text = null, lastErr = null;
-
+    const srcUrl=SHEET_CSV+`&_=${Date.now()}`;
+    let text=null,lastErr=null;
     for (const proxy of PROXIES) {
       try {
-        const res = await fetch(proxy(srcUrl), { cache: 'no-store' });
+        const res=await fetch(proxy(srcUrl),{cache:'no-store'});
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const t = await res.text();
+        const t=await res.text();
         if (t.trim().startsWith('<')) throw new Error('Got HTML instead of CSV');
-        text = t;
-        break;
-      } catch (e) { lastErr = e; }
+        text=t; break;
+      } catch(e){lastErr=e;}
     }
-
-    if (!text) throw lastErr || new Error('All proxies failed');
+    if (!text) throw lastErr||new Error('All proxies failed');
     render(parseCSV(text));
     errBanner.classList.remove('show');
-  } catch (err) {
-    document.getElementById('errMsg').textContent = `Could not fetch data: ${err.message}`;
+  } catch(err) {
+    document.getElementById('errMsg').textContent=`Could not fetch data: ${err.message}`;
     errBanner.classList.add('show');
-    document.getElementById('ftDot').className = 'ft-dot err';
-    document.getElementById('ftStatus').textContent = 'Fetch failed — check connection';
+    document.getElementById('ftDot').className='ft-dot err';
+    document.getElementById('ftStatus').textContent='Fetch failed — check connection';
   } finally {
     overlay.classList.add('hidden');
     refreshBtn.classList.remove('loading');
   }
 }
 
-// ─── FULLSCREEN ───────────────────────────────────────────────────────────────
+/* ── FULLSCREEN ──────────────────────────────────────────────────── */
 function toggleFS() {
-  const w = document.getElementById('wrapper');
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-    const req = w.requestFullscreen || w.webkitRequestFullscreen;
+  const w=document.getElementById('wrapper');
+  if (!document.fullscreenElement&&!document.webkitFullscreenElement) {
+    const req=w.requestFullscreen||w.webkitRequestFullscreen;
     if (req) req.call(w);
   } else {
-    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    const ex=document.exitFullscreen||document.webkitExitFullscreen;
     if (ex) ex.call(document);
   }
 }
-document.addEventListener('fullscreenchange', updateBtn);
-document.addEventListener('webkitfullscreenchange', updateBtn);
+document.addEventListener('fullscreenchange',updateBtn);
+document.addEventListener('webkitfullscreenchange',updateBtn);
 function updateBtn() {
-  const inFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  document.getElementById('fsBtn').innerHTML = inFS
-    ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg> Exit full screen`
-    : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Full screen`;
+  const inFS=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  document.getElementById('fsBtn').innerHTML=inFS
+    ?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg> Exit full screen`
+    :`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg> Full screen`;
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
 loadData();
 </script>
 </body>
