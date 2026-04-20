@@ -256,17 +256,24 @@ tbody tr.latest-row td:first-child::after {
 #wrapper:-moz-full-screen,
 #wrapper:-ms-fullscreen {
   background: #eef2f7 !important;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   overflow-y: auto;
-  padding: 5vh 5vw;       /* ← 5% gap on all four edges */
+  padding: 5vh 5vw;
+  box-sizing: border-box;
+  width: 100vw;
+  min-height: 100vh;
 }
 #wrapper:fullscreen .db,
 #wrapper:-webkit-full-screen .db,
 #wrapper:-moz-full-screen .db,
 #wrapper:-ms-fullscreen .db {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 1600px;
   padding: 0;
   background: transparent !important;
-  max-width: 1600px;
-  margin: 0 auto;
 }
 :-webkit-full-screen { background: #eef2f7 !important; }
 :-moz-full-screen     { background: #eef2f7 !important; }
