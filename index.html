@@ -445,9 +445,9 @@ function toggleDark(){
   try{localStorage.setItem('rcf-theme',isDark?'light':'dark')}catch(e){}
 }
 (function initTheme(){
-  let saved='light';
-  try{saved=localStorage.getItem('rcf-theme')||'light'}catch(e){}
-  if(saved==='dark'||(saved==='light'?false:window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)){
+  let saved='dark';
+  try{saved=localStorage.getItem('rcf-theme')||'dark'}catch(e){}
+  if(saved==='dark'){
     document.documentElement.setAttribute('data-theme','dark');
   }
 })();
