@@ -13,6 +13,7 @@
   --bg-metric:#f7f9ff;
   --bg-metric-warn:#fff8ed;
   --bg-metric-ok:#f0fff8;
+  --bg-metric-info:#f0f6ff;
   --bg-avg:#f7f9ff;
   --bg-avg-h:#eef2ff;
   --bg-tot:#f0f4ff;
@@ -30,6 +31,9 @@
   --text-ok:#0f6e56;
   --text-ok-sub:#1a9070;
   --text-ok-val:#0f9e78;
+  --text-info:#1a4a8c;
+  --text-info-sub:#2a5aaa;
+  --text-info-val:#2563eb;
   --text-metric-val:#1a3a6b;
   --text-tot:#1a3a6b;
   --hdr-bg:linear-gradient(135deg,#0a1628 0%,#1a3a6b 60%,#1e4d8c 100%);
@@ -54,6 +58,7 @@
   --metric-border:rgba(58,112,212,0.1);
   --metric-border-warn:rgba(200,140,0,0.15);
   --metric-border-ok:rgba(15,110,86,0.15);
+  --metric-border-info:rgba(37,99,235,0.18);
   --avg-border:rgba(0,0,0,0.05);
 }
 
@@ -64,6 +69,7 @@
   --bg-metric:#1a2236;
   --bg-metric-warn:#1f1a0e;
   --bg-metric-ok:#0d1f1a;
+  --bg-metric-info:#0f1e38;
   --bg-avg:#1a2236;
   --bg-avg-h:#1e2a45;
   --bg-tot:#1a2540;
@@ -81,6 +87,9 @@
   --text-ok:#34d399;
   --text-ok-sub:#10b981;
   --text-ok-val:#34d399;
+  --text-info:#60a5fa;
+  --text-info-sub:#3b82f6;
+  --text-info-val:#60a5fa;
   --text-metric-val:#7ab3f0;
   --text-tot:#7ab3f0;
   --hdr-bg:linear-gradient(135deg,#060c14 0%,#0d1f3c 60%,#0f2847 100%);
@@ -105,6 +114,7 @@
   --metric-border:rgba(122,179,240,0.15);
   --metric-border-warn:rgba(245,197,24,0.12);
   --metric-border-ok:rgba(52,211,153,0.15);
+  --metric-border-info:rgba(96,165,250,0.2);
   --avg-border:rgba(255,255,255,0.04);
 }
 
@@ -265,17 +275,22 @@ tbody tr.latest-row td:first-child::after{content:' ●';color:#e8a800;font-size
 .metric-box:last-child{margin-bottom:0}
 .metric-box.warn{background:var(--bg-metric-warn);border-color:var(--metric-border-warn)}
 .metric-box.ok{background:var(--bg-metric-ok);border-color:var(--metric-border-ok)}
+.metric-box.info{background:var(--bg-metric-info);border-color:var(--metric-border-info)}
 .metric-box.warn:hover{box-shadow:0 2px 12px rgba(200,140,0,0.10)}
 .metric-box.ok:hover{box-shadow:0 2px 12px rgba(15,110,86,0.10)}
+.metric-box.info:hover{box-shadow:0 2px 12px rgba(37,99,235,0.12)}
 .mb-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-lbl);font-weight:600;transition:color 0.4s}
 .metric-box.warn .mb-lbl{color:var(--text-warn)}
 .metric-box.ok .mb-lbl{color:var(--text-ok)}
+.metric-box.info .mb-lbl{color:var(--text-info)}
 .mb-sub{font-size:10px;color:var(--text-hint);margin-top:2px;transition:color 0.4s}
 .metric-box.warn .mb-sub{color:var(--text-warn-sub)}
 .metric-box.ok .mb-sub{color:var(--text-ok-sub)}
+.metric-box.info .mb-sub{color:var(--text-info-sub)}
 .mb-val{font-size:30px;font-weight:700;color:var(--text-metric-val);transition:color 0.4s}
 .metric-box.warn .mb-val{color:var(--text-warn-val)}
 .metric-box.ok .mb-val{color:var(--text-ok-val)}
+.metric-box.info .mb-val{color:var(--text-info-val)}
 
 .avg-row{
   display:flex;justify-content:space-between;align-items:center;
@@ -416,6 +431,11 @@ svg,svg *,.kpi::after,.card-ttl::before,.ft-dot{transition:none!important}
           <div><div class="mb-lbl">Backlog — prev. year</div><div class="mb-sub">Carried forward</div></div>
           <div class="mb-val" id="backlog">—</div>
         </div>
+        <!-- NEW: Current Backlog of last month — value from cell M2 of the sheet -->
+        <div class="metric-box info">
+          <div><div class="mb-lbl">Backlog — last month</div><div class="mb-sub">Current backlog (M2)</div></div>
+          <div class="mb-val" id="backlogLastMonth">—</div>
+        </div>
         <div class="metric-box ok">
           <div><div class="mb-lbl">Backlog cleared</div><div class="mb-sub">Cleared this month</div></div>
           <div class="mb-val" id="backlogCleared">—</div>
@@ -457,6 +477,11 @@ const PROXIES=[
   u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u=>`https://cors-anywhere.herokuapp.com/${u}`,
 ];
+
+// Column M is index 12 (0-based). Row 2 is index 1 (0-based after header).
+// The sheet is published as CSV so rows map directly: row 0 = sheet row 1, row 1 = sheet row 2 (M2).
+const M2_COL_INDEX = 12; // Column M (A=0, B=1, … M=12)
+const M2_ROW_INDEX = 1;  // Sheet row 2 → CSV array index 1
 
 function toggleDark(){
   const html=document.documentElement;
@@ -528,6 +553,14 @@ function startClock(baseLabel){
 }
 
 function render(rows){
+  // ── Extract M2 value directly from CSV row index 1, column index 12 ──────
+  // Sheet row 2 = CSV rows[1]; Column M = index 12
+  let backlogLastMonth = 0;
+  if(rows.length > M2_ROW_INDEX){
+    const m2val = (rows[M2_ROW_INDEX][M2_COL_INDEX] || '').trim();
+    backlogLastMonth = n(m2val);
+  }
+
   const daily=[],coaches=[];
   let mthShell=0,mthFurn=0,mthDesp=0,yrShell=0,yrFurn=0,yrDesp=0;
   let avgShell='',avgFurn='',avgDesp='';
@@ -539,7 +572,6 @@ function render(rows){
   }
   let dateCol=0,shellCol=1,furnCol=2,despCol=3;
   let coachCol=5,targetCol=6,outCol=7,balCol=8;
-  // Columns for yard metrics — from image: col10=yardReady, col11=backlog, col12=backlogCleared
   let yardCol=10,backlogCol=11,backlogClearedCol=12;
 
   if(hdrRowIdx>=0){
@@ -554,13 +586,11 @@ function render(rows){
       else if(h.includes('TARGET'))targetCol=c;
       else if(h.includes('OUTTURN')||h==='OUT.')outCol=c;
       else if(h.includes('BALANCE')||h==='BALANCED'||h.includes('BAL'))balCol=c;
-      // Detect header columns for yard/backlog metrics
       else if(h.includes('READY')||h.includes('YARD'))yardCol=c;
       else if((h.includes('BACKLOG')&&h.includes('LAST'))||(h.includes('CURRENT')&&h.includes('BACKLOG')))backlogCol=c;
       else if(h.includes('BACKLOG')&&(h.includes('CLEAR')||h.includes('THIS MONTH')))backlogClearedCol=c;
     }
 
-    // Try reading yard/backlog values from the header row itself (some sheets put values in the header row)
     const hdrYard=n(rows[hdrRowIdx][yardCol]);
     const hdrBack=n(rows[hdrRowIdx][backlogCol]);
     const hdrCleared=n(rows[hdrRowIdx][backlogClearedCol]);
@@ -568,7 +598,6 @@ function render(rows){
     if(hdrBack>0)backlog=hdrBack;
     if(hdrCleared>0)backlogCleared=hdrCleared;
 
-    // Also check row before header (title/value rows sometimes sit above the header)
     if(hdrRowIdx>0){
       const tr=rows[hdrRowIdx-1];
       const tv=n(tr[yardCol]),tb=n(tr[backlogCol]),tc=n(tr[backlogClearedCol]);
@@ -604,7 +633,6 @@ function render(rows){
       const tgt=n(row[targetCol]),out=n(row[outCol]),bal=n(row[balCol]);
       if(tgt>0||out>0)coaches.push({type:coachName,target:tgt,out:out,bal:bal||(tgt-out)});
     }
-    // Named-row lookups for yard / backlog metrics (fallback)
     if(coachUp.includes('NUMBER OF READY')||coachUp.includes('READY COACHES')){
       const v=n(row[coachCol+1]);if(v>0)yardReady=v;
     }
@@ -614,8 +642,6 @@ function render(rows){
     if(coachUp.includes('BACKLOG CLEARED')||coachUp.includes('CLEARED THIS MONTH')||coachUp.includes('BACKLOG CLEAR')){
       const v=n(row[coachCol+1]);if(v>0)backlogCleared=v;
     }
-
-    // Also scan across full row for "Backlog cleared this month" header pattern
     for(let c=0;c<row.length;c++){
       const cellUp=(row[c]||'').toString().toUpperCase();
       if(cellUp.includes('BACKLOG CLEARED')||cellUp.includes('CLEARED THIS MONTH')){
@@ -624,15 +650,11 @@ function render(rows){
     }
   }
 
-  // Scan ALL rows for "Backlog cleared this month" header + its value (it sits in the top-right summary area)
-  // Pattern from image: row 0 has headers "Number of Ready Coaches in Yard | Current Backlog of last year | Backlog cleared this month"
-  //                     row 1 has the values                24                         81                         106
   for(let i=0;i<Math.min(rows.length,5);i++){
     const row=rows[i];
     for(let c=0;c<row.length;c++){
       const cellUp=(row[c]||'').toString().toUpperCase();
       if(cellUp.includes('BACKLOG CLEARED')||cellUp.includes('CLEARED THIS MONTH')){
-        // The value is likely in the same column in the next row, or in the cell to the right
         if(i+1<rows.length){const v=n(rows[i+1][c]);if(v>0){backlogCleared=v;break;}}
         const vRight=n(row[c+1]);if(vRight>0){backlogCleared=vRight;break;}
       }
@@ -692,6 +714,8 @@ function render(rows){
 
   document.getElementById('yardReady').textContent=yardReady||'—';
   document.getElementById('backlog').textContent=backlog||'—';
+  // ── NEW: render M2 value ──────────────────────────────────────────────────
+  document.getElementById('backlogLastMonth').textContent=backlogLastMonth||'—';
   document.getElementById('backlogCleared').textContent=backlogCleared||'—';
   document.getElementById('avg-shell').textContent=avgShell;
   document.getElementById('avg-furn').textContent=avgFurn;
